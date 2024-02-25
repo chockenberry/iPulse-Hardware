@@ -36,7 +36,7 @@ void setup() {
 
   display.cp437(true);
   display.setRotation(1);
-  display.setContrast(255);
+  display.setContrast(0);
 
   pinMode(BUTTON_A, INPUT_PULLUP);
   pinMode(BUTTON_B, INPUT_PULLUP);
@@ -53,13 +53,13 @@ void setup() {
   int16_t spacing = 9;
   int16_t start = 1;
 
-  displayGraph("\x0F", 0, start + (spacing * 0), 64, 8);
-  displayGraph("\x18", 0, start + (spacing * 1), 64, 16);
-  displayGraph("\x19", 0, start + (spacing * 2), 64, 32);
-  displayGraph("\x1E", 0, start + (spacing * 3), 64, 48);
-  displayGraph("\x1F", 0, start + (spacing * 4), 64, 63);
-  displayGraph("\xB0", 0, start + (spacing * 5), 64, 8);
-  displayGraph("jy\x80", 0, start + (spacing * 6), 64, 0);
+  displayGraph("\x03", "  20 %", 0, start + (spacing * 0), 64, 8);
+  displayGraph("\x18", "   - bps", 0, start + (spacing * 1), 64, 16);
+  displayGraph("\x19", " 100 Mbps", 0, start + (spacing * 2), 64, 32);
+  displayGraph("\x1E", "1023 MB/s", 0, start + (spacing * 3), 64, 64);
+  displayGraph("\x1F", "   1 KB/s", 0, start + (spacing * 4), 64, 1);
+  displayGraph("\xB0", "12.1 GB", 0, start + (spacing * 5), 64, 8);
+  displayGraph("\x80", "   - TBD", 0, start + (spacing * 6), 64, 0);
   display.display();
 
   Serial.println("setup done");
@@ -96,17 +96,33 @@ void loop() {
     interval = 1000;
   }
 
+  int16_t spacing = 9;
+  int16_t start = 1;
+
+  // displayGraph("\x0F", "  20 %", 0, start + (spacing * 0), 64, 8);
+  // displayGraph("\x18", "   - bps", 0, start + (spacing * 1), 64, 16);
+  // displayGraph("\x19", " 100 Mbps", 0, start + (spacing * 2), 64, 32);
+  // displayGraph("\x1E", "  10 MB/s", 0, start + (spacing * 3), 64, 48);
+  // displayGraph("\x1F", " 100 KB/s", 0, start + (spacing * 4), 64, 63);
+  // displayGraph("\xB0", "12.1 GB", 0, start + (spacing * 5), 64, 8);
+  // displayGraph("\x80", "   - TBD", 0, start + (spacing * 6), 64, 0);
+  // display.display();
+
   //delay(10);
   //yield();
   //display.display();
 
 }
 
-void displayGraph(const char *name, int16_t x, int16_t y, int16_t w, int16_t v) {
+void displayGraph(const char *name, const char *label, int16_t x, int16_t y, int16_t w, int16_t v) {
   const int16_t offset = 8;
+  const int16_t spacer = 2;
 
   display.setCursor(x, y);
   display.print(name);
-  display.drawRoundRect(x + offset, y, w, 7, 2, SH110X_WHITE);
-  display.fillRect(x + offset + 1, y + 1, v, 5, SH110X_WHITE);
+  //display.drawRoundRect(x + offset, y, w, 7, 2, SH110X_WHITE);
+  //display.fillRect(x + offset + 1, y + 1, v, 5, SH110X_WHITE);
+  display.fillRoundRect(x + offset, y, v, 7, 2, SH110X_WHITE);
+  display.setCursor(x + offset + w + spacer, y);
+  display.print(label);
 }
