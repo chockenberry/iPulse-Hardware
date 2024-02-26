@@ -89,7 +89,7 @@
 						
 						// The baud rate, word length, and handshake options can be set as follows:
 						
-						cfsetspeed(&attributes, B9600);		// Set 9600 baud
+						cfsetspeed(&attributes, B115200);	// Set 9600 baud
 						attributes.c_cflag |= (CS8 | 		// Use 8 bit words
 											   PARENB);		// Parity enable (even parity if PARODD not also set)
 						

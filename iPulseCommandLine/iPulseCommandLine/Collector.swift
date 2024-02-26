@@ -569,7 +569,7 @@ class Collector {
 		collectNetwork()
 		collectProcessor()
 		collectDisks()
-		collectGraphics()
+		//collectGraphics()
 	}
 	
 	func reset() {
@@ -610,7 +610,7 @@ class Collector {
 		}
 		
 		//collectorLogger.info("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.memoryUsedSize + memorySample.cachedFilesSize + memorySample.freeSize).bytes()) sum - \(Double(memorySample.totalSize).bytes()) total")
-		collectorLogger.info("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.totalSize).bytes()) total")
+		//collectorLogger.info("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.totalSize).bytes()) total")
 		
 #if false
 		do {
@@ -753,7 +753,7 @@ class Collector {
 		lastNetworkSnapshot = networkSnapshot
 		
 		let networkSample = NetworkSample(receivedPackets: deltaReceivedPackets, receivedErrors: deltaReceivedErrors, receivedBytes: deltaReceivedBytes, sentPackets: deltaSentPackets, sentErrors: deltaSentErrors, sentBytes: deltaSentBytes)
-		collectorLogger.info("NETWORK: \(networkSample.description)")
+		//collectorLogger.info("NETWORK: \(networkSample.description)")
 		networkSamples.append(networkSample)
 		while networkSamples.count > Self.sampleCount {
 			networkSamples.remove(at: 0)
@@ -824,9 +824,9 @@ class Collector {
 			processorSamples.remove(at: 0)
 		}
 		
-		for (index, coreSample) in coreSamples.enumerated() {
-			collectorLogger.info("CPU: \(self.processorCoreInfo[index].type) \(coreSample.description)")
-		}
+//		for (index, coreSample) in coreSamples.enumerated() {
+//			collectorLogger.info("CPU: \(self.processorCoreInfo[index].type) \(coreSample.description)")
+//		}
 		
 		// use bitPattern? https://stackoverflow.com/a/48630296/132867
 		vm_deallocate(mach_task_self_, vm_address_t(processorInfoArray.pointee), vm_size_t(processorInfoCount))
@@ -943,7 +943,7 @@ class Collector {
 					}
 					
 					let volumeSample = VolumeSample(totalBlocks: totalBlocks, availableBlocks: availableBlocks, blockSize: blockSize, name: volumeName)
-					collectorLogger.info("DISK: \(volumeSample.description)")
+					//collectorLogger.info("DISK: \(volumeSample.description)")
 					
 					volumeSamples.append(volumeSample)
 					//					let free = ByteCountFormatter.string(fromByteCount: Int64(freeSize), countStyle: .file)
@@ -964,7 +964,7 @@ class Collector {
 		let graphicsUtilization = queryGraphicsUtilization()
 		let deviceUtilization = graphicsUtilization / 100.0
 		let graphicsSample = GraphicsSample(deviceUtilization: deviceUtilization, memorySize: 0)
-		collectorLogger.info("GRAPHICS: \(graphicsSample.description)")
+		//collectorLogger.info("GRAPHICS: \(graphicsSample.description)")
 		
 		graphicsSamples.append(graphicsSample)
 		while graphicsSamples.count > Self.sampleCount {

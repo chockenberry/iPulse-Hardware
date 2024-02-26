@@ -14,7 +14,7 @@ class Controller {
 	let collector = Collector()
 	
 	init() {
-		serial = Serial(bsdPath: "/dev/cu.usbserial-DA00T2K5")
+		serial = Serial(bsdPath: "/dev/cu.usbmodem1444201")
 		serial.open()
 	}
 
@@ -31,7 +31,7 @@ class Controller {
 					partialResult + coreSample.usage
 				})
 				let usage = totalUsage / Double(processorSample.coreSamples.count)
-				let message = "CPU: \(usage.formatted(.normalized))%"
+				let message = "\(usage)"
 				self.serial.send(message)
 			}
 		}
