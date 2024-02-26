@@ -39,6 +39,18 @@ void configurePins() {
   pinMode(BUTTON_C, INPUT_PULLUP);
 }
 
+// 'Bitmap', 8x8px
+const unsigned char test_bitmap_Bitmap [] PROGMEM = {
+	0x0e, 0xef, 0xef, 0xef, 0xf7, 0xf7, 0xf7, 0x70
+};
+
+// bitmap created with http://javl.github.io/image2cpp/ - white in image = white on display
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 32)
+const int test_bitmap_allArray_LEN = 1;
+const unsigned char* test_bitmap_allArray[1] = {
+	test_bitmap_Bitmap
+};
+
 void setup() {
   // put your setup code here, to run once:
 
@@ -111,12 +123,13 @@ void loop() {
   }
 }
 
-void displayGraph(const char *name, const char *value, const char *units, int16_t x, int16_t y, int16_t w, int16_t v) {
+void displayGraph(const char *icon, const char *value, const char *units, int16_t x, int16_t y, int16_t w, int16_t v) {
+#if 0
   const int16_t offset = 8;
   const int16_t spacer = 2;
 
   display.setCursor(x, y);
-  display.print(name);
+  display.print(icon);
   //display.drawRoundRect(x + offset, y, w, 7, 2, SH110X_WHITE);
   //display.fillRect(x + offset + 1, y + 1, v, 5, SH110X_WHITE);
   display.fillRoundRect(x + offset, y, v, 7, 2, SH110X_WHITE);
@@ -124,6 +137,18 @@ void displayGraph(const char *name, const char *value, const char *units, int16_
   display.print(value);
   display.print(" ");
   display.print(units);
+#else
+  const int16_t spacer = 2;
+  const int16_t character = 5;
+  
+  display.fillRoundRect(x, y, v, 7, 2, SH110X_WHITE);
+  display.setCursor(x + w + spacer, y);
+  display.print(icon);
+  display.setCursor(x + w + spacer + character + spacer, y);
+  display.print(value);
+  display.setCursor(x + w + spacer + character + spacer + ((character + 1) * 4) + spacer, y);
+  display.print(units);
+#endif
 }
 
 void setDimmed(bool flag) {
@@ -138,7 +163,7 @@ void toggleHeartbeat() {
 
 void displayData(dataPtr data) {
   int16_t barWidth = 64;
-  int16_t stride = 8;
+  int16_t stride = 9;
   int16_t start = 0;
   int16_t indent = 0;
 
@@ -149,28 +174,30 @@ void displayData(dataPtr data) {
   display.clearDisplay();
   
   displayGraph("\x03", cpuLabel, "%", indent, start + (stride * 0), barWidth, scaledCpuLevel);
-  displayGraph("\x18", "   -", "bps", indent, start + (stride * 1), barWidth, 16);
-  displayGraph("\x19", " 100", "Mbps", indent, start + (stride * 2), barWidth, 32);
-  displayGraph("\x1E", "1023", "MB/s", indent, start + (stride * 3), barWidth, 64);
-  displayGraph("\x1F", "   1", "KB/s", indent, start + (stride * 4), barWidth, 1);
-  displayGraph("\xB0", "12.1", "GB", indent, start + (stride * 5), barWidth, 8);
+  displayGraph("\x18", "   -", "bps", indent, start + (stride * 1), barWidth, 0);
+  displayGraph("\x19", "   -", "bps", indent, start + (stride * 2), barWidth, 0);
+  displayGraph("\x1E", "   -", "B/s", indent, start + (stride * 3), barWidth, 0);
+  displayGraph("\x1F", "   -", "B/s", indent, start + (stride * 4), barWidth, 0);
+  displayGraph("\xB0", "   -", "GB", indent, start + (stride * 5), barWidth, 0);
 
   //display.setCursor(0, 64 - 15);
   //display.print("NEXT TO LAST LINE");
 
-  display.drawLine(0, 64 - 8 - 4, 128, 64 - 8 - 4, SH110X_WHITE);
+  display.drawLine(0, 64 - 8 - 3, 128, 64 - 8 - 3, SH110X_WHITE);
   //display.drawLine(63, 64 - 8 - 4, 63, 64, SH110X_WHITE);
   //display.drawRect(0, 64 - 8 - 5, 128, 8 + 5, SH110X_WHITE);
   //display.drawLine(63, 64 - 8 - 5, 63, 64, SH110X_WHITE);
 
   display.setCursor(0, 64 - 8);
   //display.setCursor(2, 64 - 8 - 2);
-  display.print("400.5 days");
+  display.print("0.0 days");
 
   //display.setCursor(66, 64 - 8);
   //display.setCursor(66, 64 - 8 - 2);
   display.setCursor(8 + 64 + 2, 64 - 8);
-  display.print("2.05 avg");
+  display.print("1.0 avg.");
+
+  display.drawBitmap(64, 64 - 8, test_bitmap_Bitmap, 8, 8, SH110X_WHITE);
 
   //displayGraph("\x80", "   -", "TBD", indent, start + (stride * 6), barWidth, 0);
   display.display();

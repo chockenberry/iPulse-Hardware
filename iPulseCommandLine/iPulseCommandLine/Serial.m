@@ -134,12 +134,12 @@
 - (void)send:(NSString *)message
 {
 	if (self.fileDescriptor != -1) {
-		NSLog(@"send: '%@' to %@", message, self.bsdPath);
+		//NSLog(@"send: '%@' to %@", message, self.bsdPath);
 		
 		NSData *data = [[message stringByAppendingString:@"\r"] dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
 		ssize_t bytesWritten = write(self.fileDescriptor, data.bytes, data.length);
 		if (bytesWritten != -1) {
-			NSLog(@"send: wrote %ld bytes", bytesWritten);
+			//NSLog(@"send: wrote %ld bytes", bytesWritten);
 		}
 		else {
 			[self handleError:@"sending message"];
