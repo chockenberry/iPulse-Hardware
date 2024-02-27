@@ -13,11 +13,22 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 
+// for sleep & wake notifications
+#import <IOKit/IOMessage.h>
+#include <IOKit/IOKitLib.h>
+#include <IOKit/pwr_mgt/IOPM.h>
+#include <IOKit/pwr_mgt/IOPMLib.h>
+
 @interface Serial : NSObject
 
 @property (nonatomic, strong, readwrite) NSString *bsdPath;
 @property (nonatomic, assign) int fileDescriptor;
 @property (nonatomic, assign) struct termios originalAttributes;
+@property (nonatomic, assign) BOOL needsReopen;
+
+// for sleep & wake notifications
+@property (nonatomic, assign) io_connect_t rootPort;
+@property (nonatomic, assign) io_object_t notifier;
 
 @end
 
@@ -30,9 +41,17 @@
 	if ((self = [super init])) {
 		self.bsdPath = bsdPath;
 		self.fileDescriptor = -1;
+		self.needsReopen = NO;
+		
+		[self registerForSleepWakeNotification];
 	}
 	
 	return self;
+}
+
+- (void)dealloc
+{
+	[self deregisterForSleepWakeNotification];
 }
 
 - (void)handleError:(NSString *)message
@@ -149,7 +168,69 @@
 
 - (void)close
 {
-	NSLog(@"close %@", self.bsdPath);
+	if (self.fileDescriptor != -1) {
+		NSLog(@"close %@", self.bsdPath);
+
+		// Block until all written output has been sent from the device.
+		// Note that this call is simply passed on to the serial device driver.
+		// See tcsendbreak(3) ("man 3 tcsendbreak") for details.
+		if (tcdrain(self.fileDescriptor) == -1) {
+			NSLog(@"close: error waiting for drain on %@ - %s (%d)", self.bsdPath, strerror(errno), errno);
+		}
+		
+		// Traditionally it is good practice to reset a serial port back to
+		// the state in which you found it. This is why the original termios struct
+		// was saved.
+		
+		struct termios attributes = self.originalAttributes;
+		if (tcsetattr(self.fileDescriptor, TCSANOW, &attributes) == -1) {
+			NSLog(@"close: error resetting tty attributes on %@ - %s (%d)", self.bsdPath, strerror(errno), errno);
+		}
+
+		close(self.fileDescriptor);
+		self.fileDescriptor = -1;
+	}
+}
+
+void powerCallback(void *refCon, io_service_t service, natural_t messageType, void *messageArgument)
+{
+	[(__bridge Serial *)refCon powerMessageReceived:messageType withArgument:messageArgument];
+}
+
+- (void)powerMessageReceived:(natural_t)messageType withArgument:(void *) messageArgument
+{
+	switch (messageType)
+	{
+		case kIOMessageSystemWillSleep:
+			[self close];
+			self.needsReopen = YES;
+			IOAllowPowerChange(self.rootPort, (long)messageArgument);
+			NSLog(@"powerMessageReceived: system will sleep");
+			break;
+			
+		case kIOMessageSystemHasPoweredOn:
+			NSLog(@"powerMessageReceived: system has powered on");
+			if (self.needsReopen) {
+				[self open];
+			}
+			break;
+	}
+}
+
+- (void)registerForSleepWakeNotification
+{
+	IONotificationPortRef notificationPort;
+	io_object_t notifier;
+	self.rootPort = IORegisterForSystemPower((__bridge void *)(self), &notificationPort, powerCallback, &notifier);
+	self.notifier = notifier;
+	NSAssert(self.rootPort != MACH_PORT_NULL, @"IORegisterForSystemPower failed");
+	CFRunLoopAddSource(CFRunLoopGetCurrent(), IONotificationPortGetRunLoopSource(notificationPort), kCFRunLoopDefaultMode);
+}
+
+- (void)deregisterForSleepWakeNotification
+{
+	io_object_t notifier = self.notifier;
+	IODeregisterForSystemPower(&notifier);
 }
 
 @end
