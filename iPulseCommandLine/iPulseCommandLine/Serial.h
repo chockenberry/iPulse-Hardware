@@ -18,6 +18,7 @@
 
 - (void)open;
 - (void)send:(NSString *)message;
+- (NSString *)read;
 - (void)close;
 
 @end

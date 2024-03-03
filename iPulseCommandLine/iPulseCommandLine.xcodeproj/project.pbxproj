@@ -12,6 +12,8 @@
 		44314D522B8A93D100BC4914 /* Serial.m in Sources */ = {isa = PBXBuildFile; fileRef = 44314D512B8A93D100BC4914 /* Serial.m */; };
 		44314D552B8A99AE00BC4914 /* Collector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44314D542B8A99AE00BC4914 /* Collector.swift */; };
 		44314D582B8A99EF00BC4914 /* IOKItHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 44314D562B8A99EF00BC4914 /* IOKItHelper.m */; };
+		44E1B3172B93B88400B3A50B /* Transfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E1B3162B93B88400B3A50B /* Transfer.swift */; };
+		44E1B3192B93BA2500B3A50B /* Debug.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E1B3182B93BA2500B3A50B /* Debug.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -36,6 +38,8 @@
 		44314D542B8A99AE00BC4914 /* Collector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Collector.swift; sourceTree = "<group>"; };
 		44314D562B8A99EF00BC4914 /* IOKItHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = IOKItHelper.m; sourceTree = "<group>"; };
 		44314D572B8A99EF00BC4914 /* IOKitHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IOKitHelper.h; sourceTree = "<group>"; };
+		44E1B3162B93B88400B3A50B /* Transfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transfer.swift; sourceTree = "<group>"; };
+		44E1B3182B93BA2500B3A50B /* Debug.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Debug.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,11 +74,13 @@
 			children = (
 				44314D472B8A91DF00BC4914 /* main.swift */,
 				44314D4E2B8A92AC00BC4914 /* Controller.swift */,
+				44E1B3162B93B88400B3A50B /* Transfer.swift */,
 				44314D542B8A99AE00BC4914 /* Collector.swift */,
 				44314D532B8A947E00BC4914 /* Serial.h */,
 				44314D512B8A93D100BC4914 /* Serial.m */,
 				44314D572B8A99EF00BC4914 /* IOKitHelper.h */,
 				44314D562B8A99EF00BC4914 /* IOKItHelper.m */,
+				44E1B3182B93BA2500B3A50B /* Debug.swift */,
 				44314D502B8A93D100BC4914 /* iPulseCommandLine-Bridging-Header.h */,
 			);
 			path = iPulseCommandLine;
@@ -143,6 +149,8 @@
 				44314D552B8A99AE00BC4914 /* Collector.swift in Sources */,
 				44314D482B8A91DF00BC4914 /* main.swift in Sources */,
 				44314D4F2B8A92AC00BC4914 /* Controller.swift in Sources */,
+				44E1B3172B93B88400B3A50B /* Transfer.swift in Sources */,
+				44E1B3192B93BA2500B3A50B /* Debug.swift in Sources */,
 				44314D582B8A99EF00BC4914 /* IOKItHelper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

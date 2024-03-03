@@ -112,7 +112,12 @@
 						attributes.c_cflag |= (CS8 | 		// Use 8 bit words
 											   PARENB);		// Parity enable (even parity if PARODD not also set)
 						
+						//attributes.c_lflag |= ICANON | ISIG;	// Canonical input
+						//attributes.c_lflag &= ~(ECHO | ECHOE | ECHONL | IEXTEN);
+						//attributes.c_lflag &= ~(ECHO);
 						
+						//attributes.c_oflag &= ~OPOST;
+
 						// Print the new input and output baud rates. Note that the IOSSIOSPEED ioctl interacts with the serial driver
 						// directly bypassing the termios struct. This means that the following two calls will not be able to read
 						// the current baud rate if the IOSSIOSPEED ioctl was used but will instead return the speed set by the last call
@@ -163,6 +168,41 @@
 		else {
 			[self handleError:@"sending message"];
 		}
+	}
+}
+
+- (NSString *)read
+{
+	NSMutableString *output = [NSMutableString new];
+	char buffer[256];
+	
+	BOOL done = NO;
+	while (!done) {
+		size_t bufferSize = sizeof(buffer);
+		bzero(buffer, bufferSize);
+		ssize_t bytesRead = read(self.fileDescriptor, buffer, bufferSize);
+		if (bytesRead > 0) {
+			NSString *string = [[NSString alloc] initWithBytes:buffer length:bytesRead encoding:NSUTF8StringEncoding];
+			[output appendString:string];
+		}
+		else {
+			done = true;
+		}
+		if (bytesRead == -1) {
+			if (errno != EAGAIN) {
+				NSLog(@"read: error = %d (%s)", errno, strerror(errno));
+			}
+		}
+		else {
+			//NSLog(@"read: bytesRead = %zd", bytesRead);
+		}
+	}
+	
+	if (output.length > 0) {
+		return [output copy];
+	}
+	else {
+		return nil;
 	}
 }
 
