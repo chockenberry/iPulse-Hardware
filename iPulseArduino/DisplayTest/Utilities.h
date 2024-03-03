@@ -8,8 +8,87 @@ void percentageLabel(float value, char *label) {
 }
 
 void bitsPerSecondLabel(int64_t value, char *label, char *units) {
-  snprintf(label, 5, "%4d", (int16_t)(value / 1000));
-  strcpy(units, "Kbps");
+    if (value == 0) {
+    strcpy(label, "   -");
+    strcpy(units, "B/s");
+  }
+  else {
+    int maxScale = (int)floorf(log10f(value));
+
+    char *suffix = 0;
+    float scalingPower = 0.0;
+    int decimalPlaces = 0;
+
+    if (maxScale >= 0 && maxScale < 3) {
+      // 0 .. 1000
+      strcpy(units, "bps");
+      scalingPower = 0;
+      decimalPlaces = 0;
+    }
+    else if (maxScale >= 3 && maxScale < 6) {
+      // 1000 .. 1,000,000
+      strcpy(units, "Kbps");
+      scalingPower = 3;
+      decimalPlaces = 0;
+    }
+    else if (maxScale >= 6 && maxScale < 9) {
+      // 1,000,000 .. 1,000,000,000
+      strcpy(units, "Mbps");
+      scalingPower = 6;
+      decimalPlaces = 0;
+    }
+    else {
+      // over 1,000,000,000
+      strcpy(units, "Gbps");
+      scalingPower = 9;
+      decimalPlaces = 1;
+    }
+
+    float scaling = powf(10, scalingPower);
+    snprintf(label, 5, "%4.*f", decimalPlaces, ((float)value / scaling));
+  }
+}
+
+void bytesPerSecondLabel(int64_t value, char *label, char *units) {
+  if (value == 0) {
+    strcpy(label, "   -");
+    strcpy(units, "B/s");
+  }
+  else {
+    int maxScale = (int)floorf(log2f(value));
+
+    char *suffix = 0;
+    float scalingPower = 0.0;
+    int decimalPlaces = 0;
+
+    if (maxScale >= 0 && maxScale < 10) {
+      // 0 .. 1K
+      strcpy(units, "B/s");
+      scalingPower = 0;
+      decimalPlaces = 0;
+    }
+    else if (maxScale >= 10 && maxScale < 20) {
+      // 1K .. 1MB
+      strcpy(units, "KB/s");
+      scalingPower = 10;
+      decimalPlaces = 0;
+    }
+    else if (maxScale >= 20 && maxScale < 30) {
+      // 1MB .. 1GB
+      strcpy(units, "MB/s");
+      scalingPower = 20;
+      decimalPlaces = 0;
+    }
+    else {
+      // over 1GB
+      strcpy(units, "GB/s");
+      scalingPower = 30;
+      decimalPlaces = 1;
+    }
+
+    float scaling = powf(2, scalingPower);
+    snprintf(label, 5, "%4.*f", decimalPlaces, ((float)value / scaling));
+  }
 }
 
 #endif // _Utilities_H_

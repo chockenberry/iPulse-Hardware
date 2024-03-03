@@ -14,4 +14,7 @@ struct Transfer: Codable {
 	var networkReceivedBps: UInt64?
 	var networkSentBps: UInt64?
 
+	var diskReadBytes: UInt64?
+	var diskWriteBytes: UInt64?
+
 }

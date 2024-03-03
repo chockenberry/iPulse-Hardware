@@ -28,6 +28,8 @@ struct data {
   int64_t networkReceivedBps;
   int64_t networkSentBps;
 
+  int64_t diskReadBytes;
+  int64_t diskWriteBytes;
 } data;
 typedef struct data *dataPtr;
 
@@ -112,8 +114,8 @@ void loop() {
       data.cpuUsage = document["cpu_usage"];
       data.networkReceivedBps = document["network_received_bps"];
       data.networkSentBps = document["network_sent_bps"];
-//    data.cpuLevel = readString.toFloat();
-//interval = readString.toInt();
+      data.diskReadBytes = document["disk_read_bytes"];
+      data.diskWriteBytes = document["disk_write_bytes"];
 #if DEBUG
       //Serial.println(readString);
       //Serial.printf("foo\n");
@@ -203,21 +205,34 @@ void displayData(dataPtr data) {
   char downloadUnits[5];
   bitsPerSecondLabel(data->networkReceivedBps, downloadLabel, downloadUnits);
 
-  Serial.print(downloadLabel);
-  Serial.print(" ");
-  Serial.println(downloadUnits);
-  
+   
   char uploadLabel[5];
   char uploadUnits[5];
   bitsPerSecondLabel(data->networkSentBps, uploadLabel, uploadUnits);
 
+  char readLabel[5];
+  char readUnits[5];
+  bytesPerSecondLabel(data->diskReadBytes, readLabel, readUnits);
+
+  char writeLabel[5];
+  char writeUnits[5];
+  bytesPerSecondLabel(data->diskWriteBytes, writeLabel, writeUnits);
+
+  Serial.print(readLabel);
+  Serial.print(" ");
+  Serial.println(readUnits);
+ 
   display.clearDisplay();
 
+  // TODO: These should be configurable somehow...
+  const float networkScale = 1.0 * 1000.0 * 1000.0; // 1 Mbps
+  const float diskScale = 10.0 * 1024.0 * 1024.0; // 10 MB/s
+
   displayGraph(bitmapCPU, cpuLabel, "%", indent, start + (stride * 0), data->cpuUsage);
-  displayGraph(bitmapUpload, uploadLabel, uploadUnits, indent, start + (stride * 1), (float)(data->networkSentBps) / 100000.0);
-  displayGraph(bitmapDownload, downloadLabel, downloadUnits, indent, start + (stride * 2), (float)(data->networkReceivedBps) / 100000.0);
-  displayGraph(bitmapRead, "   -", "B/s", indent, start + (stride * 3), 0);
-  displayGraph(bitmapWrite, "   -", "B/s", indent, start + (stride * 4), 0);
+  displayGraph(bitmapUpload, uploadLabel, uploadUnits, indent, start + (stride * 1), (float)(data->networkSentBps) / networkScale);
+  displayGraph(bitmapDownload, downloadLabel, downloadUnits, indent, start + (stride * 2), (float)(data->networkReceivedBps) / networkScale);
+  displayGraph(bitmapRead, readLabel, readUnits, indent, start + (stride * 3), (float)(data->diskReadBytes) / diskScale);
+  displayGraph(bitmapWrite, writeLabel, writeUnits, indent, start + (stride * 4), (float)(data->diskWriteBytes) / diskScale);
   displayGraph(bitmapMemory, "   -", "GB", indent, start + (stride * 5), 0);
 
   //display.setCursor(0, 64 - 15);
@@ -230,12 +245,12 @@ void displayData(dataPtr data) {
 
   display.setCursor(0, 64 - 8);
   //display.setCursor(2, 64 - 8 - 2);
-  display.print("0.0 days");
+  display.print("--- days");
 
   //display.setCursor(66, 64 - 8);
   //display.setCursor(66, 64 - 8 - 2);
   display.setCursor(8 + 64 + 2, 64 - 8);
-  display.print("1.0 avg.");
+  display.print("--- avg");
 
   display.drawBitmap(64, 64 - 8, bitmapUptime, 8, 8, SH110X_WHITE);
 

@@ -102,7 +102,7 @@ extension Double {
 		let scalingPower: CGFloat
 		let decimalPlaces: Int
 		switch maxScale {
-		case 0..<2: // 0 .. 100
+		case 0..<3: // 0 .. 1,000
 			suffix = "bps"
 			scalingPower = 0
 			decimalPlaces = 0
@@ -446,6 +446,33 @@ struct NetworkSnapshot {
 
 // MARK: -
 
+struct DiskSample {
+	let readCount: UInt64
+	let readBytes: UInt64
+
+	let writeCount: UInt64
+	let writeBytes: UInt64
+}
+
+extension DiskSample: CustomStringConvertible {
+	var description: String {
+		let read = Double(readBytes).bytes()
+		let write = Double(writeBytes).bytes()
+
+		return "read = \(read) [\(readCount)], write = \(write) [\(writeCount)]"
+	}
+}
+
+struct DiskSnapshot {
+	private(set) var readCount: UInt64
+	private(set) var readBytes: UInt64
+
+	private(set) var writeCount: UInt64
+	private(set) var writeBytes: UInt64
+}
+
+// MARK: -
+
 struct LoadSample {
 	
 }
@@ -507,7 +534,10 @@ class Collector {
 	
 	var networkSamples: [NetworkSample] = []
 	private var lastNetworkSnapshot: NetworkSnapshot?
-	
+
+	var diskSamples: [DiskSample] = []
+	private var lastDiskSnapshot: DiskSnapshot?
+
 	var storageSamples: [StorageSample] = []
 	
 	private let processorCoreMap: [Int]
@@ -568,7 +598,8 @@ class Collector {
 		collectMemory()
 		collectNetwork()
 		collectProcessor()
-		collectDisks()
+		collectDisk()
+		collectVolumes()
 		//collectGraphics()
 	}
 	
@@ -760,6 +791,68 @@ class Collector {
 		}
 	}
 	
+	private func collectDisk() {
+		var readCount = UInt64(0)
+		var readBytes = UInt64(0)
+		var writeCount = UInt64(0)
+		var writeBytes = UInt64(0)
+		queryDiskActivity(&readCount, &readBytes, &writeCount, &writeBytes)
+		
+		let diskSnapshot = DiskSnapshot(readCount: readCount, readBytes: readBytes, writeCount: writeCount, writeBytes: writeBytes)
+
+		let deltaReadCount: UInt64
+		let deltaReadBytes: UInt64
+		let deltaWriteCount: UInt64
+		let deltaWriteBytes: UInt64
+
+		if let lastDiskSnapshot {
+			// NOTE: The deltas here can be negative since disks can get unmounted. Since a negative statistic is counterintuitive, the
+			// values are just reset to zero and will be correct after the next collection.
+			
+			if diskSnapshot.readCount > lastDiskSnapshot.readCount {
+				deltaReadCount = diskSnapshot.readCount - lastDiskSnapshot.readCount
+			}
+			else {
+				deltaReadCount = 0
+			}
+			if diskSnapshot.readBytes > lastDiskSnapshot.readBytes {
+				deltaReadBytes = diskSnapshot.readBytes - lastDiskSnapshot.readBytes
+			}
+			else {
+				deltaReadBytes = 0
+			}
+			if diskSnapshot.writeCount > lastDiskSnapshot.writeCount {
+				deltaWriteCount = diskSnapshot.writeCount - lastDiskSnapshot.writeCount
+			}
+			else {
+				deltaWriteCount = 0
+			}
+			if diskSnapshot.writeBytes > lastDiskSnapshot.writeBytes {
+				deltaWriteBytes = diskSnapshot.writeBytes - lastDiskSnapshot.writeBytes
+			}
+			else {
+				deltaWriteBytes = 0
+			}
+		}
+		else {
+			deltaReadCount = 0
+			deltaReadBytes = 0
+			deltaWriteCount = 0
+			deltaWriteBytes = 0
+		}
+
+		lastDiskSnapshot = diskSnapshot
+		
+		let diskSample = DiskSample(readCount: deltaReadCount, readBytes: deltaReadBytes, writeCount: deltaWriteCount, writeBytes: deltaWriteBytes)
+		
+		diskSamples.append(diskSample)
+		while diskSamples.count > Self.sampleCount {
+			diskSamples.remove(at: 0)
+		}
+		
+		collectorLogger.info("DISK: \(diskSample.description, privacy: .public)")
+	}
+	
 	private func collectProcessor() {
 		//collectorLogger.info("CPU: processorCoreInfo = \(processorCoreInfo)")
 		
@@ -896,7 +989,7 @@ class Collector {
 		return("\(readOnly)|\(root)|\(dontBrowse)|\(noDev)|\(removable)|\(doVolfs)|\(journaled)|\(noAccessTime)|\(snapshot)")
 	}
 	
-	private func collectDisks() {
+	private func collectVolumes() {
 		var volumeSamples: [VolumeSample] = []
 		
 		var mountInfo: UnsafeMutablePointer<statfs>? = nil
@@ -943,12 +1036,12 @@ class Collector {
 					}
 					
 					let volumeSample = VolumeSample(totalBlocks: totalBlocks, availableBlocks: availableBlocks, blockSize: blockSize, name: volumeName)
-					//collectorLogger.info("DISK: \(volumeSample.description)")
+					//collectorLogger.info("VOLUME: \(volumeSample.description)")
 					
 					volumeSamples.append(volumeSample)
 					//					let free = ByteCountFormatter.string(fromByteCount: Int64(freeSize), countStyle: .file)
 					//					let total = ByteCountFormatter.string(fromByteCount: Int64(totalSize), countStyle: .file)
-					//					collectorLogger.info("DISK: \(displayFlags), type = \(type) [\(typeNumber)]\t'\(volumeName)' \(free) of \(total)")
+					//					collectorLogger.info("VOLUME: \(displayFlags), type = \(type) [\(typeNumber)]\t'\(volumeName)' \(free) of \(total)")
 				}
 			}
 		}
@@ -961,9 +1054,11 @@ class Collector {
 	}
 	
 	private func collectGraphics() {
-		let graphicsUtilization = queryGraphicsUtilization()
-		let deviceUtilization = graphicsUtilization / 100.0
-		let graphicsSample = GraphicsSample(deviceUtilization: deviceUtilization, memorySize: 0)
+		var percentage = Double(0)
+		var memorySize = UInt64(0)
+		queryGraphicsUtilization(&percentage, &memorySize)
+		let deviceUtilization = percentage / 100.0
+		let graphicsSample = GraphicsSample(deviceUtilization: deviceUtilization, memorySize: memorySize)
 		//collectorLogger.info("GRAPHICS: \(graphicsSample.description)")
 		
 		graphicsSamples.append(graphicsSample)

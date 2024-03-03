@@ -10,6 +10,7 @@
 #ifndef IOKitHelper_h
 #define IOKitHelper_h
 
-double queryGraphicsUtilization(void);
+void queryGraphicsUtilization(double *outPercentage, UInt64 *outMemorySize);
+void queryDiskActivity(UInt64 *outReadCount, UInt64 *outReadBytes, UInt64 *outWriteCount, UInt64 *outWriteBytes);
 
 #endif /* IOKitHelper_h */
