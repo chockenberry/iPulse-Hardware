@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AppKit
 
 // TODO: Currently Serial() manages the opened/closed state. It makes more sense to control the serial port from this controller
 // using something like this: http://codeworkshop.net/posts/power-nap-and-the-network
@@ -19,12 +20,42 @@ class Controller {
 	init() {
 		serial = Serial(bsdPath: "/dev/cu.usbmodem1444201")
 		serial.open()
+
+		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(willSleep), name: NSWorkspace.willSleepNotification, object: nil)
+		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
+//		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(willSleep), name: NSWorkspace.screensDidSleepNotification, object: nil)
+//		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWake), name: NSWorkspace.screensDidWakeNotification, object: nil)
+		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didBecomeActive), name: NSWorkspace.sessionDidBecomeActiveNotification, object: nil)
+		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didResignActive), name: NSWorkspace.sessionDidResignActiveNotification, object: nil)
+		
 	}
 
 	deinit {
 		serial.close()
 	}
 	
+	@objc
+	func willSleep(_ notification: Notification) {
+		print("***** will sleep")
+		serial.close()
+	}
+
+	@objc
+	func didWake(_ notification: Notification) {
+		print("***** did wake")
+		serial.open()
+	}
+
+	@objc
+	func didBecomeActive(_ notification: Notification) {
+		print("***** did become active")
+	}
+
+	@objc
+	func didResignActive(_ notification: Notification) {
+		print("***** did resign active")
+	}
+
 	func start() {
 		guard timer == nil else { return }
 		timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in

@@ -43,7 +43,7 @@
 		self.fileDescriptor = -1;
 		self.needsReopen = NO;
 		
-		[self registerForSleepWakeNotification];
+//		[self registerForSleepWakeNotification];
 	}
 	
 	return self;
@@ -51,7 +51,7 @@
 
 - (void)dealloc
 {
-	[self deregisterForSleepWakeNotification];
+//	[self deregisterForSleepWakeNotification];
 }
 
 - (void)handleError:(NSString *)message
@@ -173,37 +173,41 @@
 
 - (NSString *)read
 {
-	NSMutableString *output = [NSMutableString new];
-	char buffer[256];
-	
-	BOOL done = NO;
-	while (!done) {
-		size_t bufferSize = sizeof(buffer);
-		bzero(buffer, bufferSize);
-		ssize_t bytesRead = read(self.fileDescriptor, buffer, bufferSize);
-		if (bytesRead > 0) {
-			NSString *string = [[NSString alloc] initWithBytes:buffer length:bytesRead encoding:NSUTF8StringEncoding];
-			[output appendString:string];
-		}
-		else {
-			done = true;
-		}
-		if (bytesRead == -1) {
-			if (errno != EAGAIN) {
-				NSLog(@"read: error = %d (%s)", errno, strerror(errno));
+	if (self.fileDescriptor != -1) {
+		NSMutableString *output = [NSMutableString new];
+		char buffer[256];
+		
+		BOOL done = NO;
+		while (!done) {
+			size_t bufferSize = sizeof(buffer);
+			bzero(buffer, bufferSize);
+			ssize_t bytesRead = read(self.fileDescriptor, buffer, bufferSize);
+			if (bytesRead > 0) {
+				NSString *string = [[NSString alloc] initWithBytes:buffer length:bytesRead encoding:NSUTF8StringEncoding];
+				[output appendString:string];
+			}
+			else {
+				done = true;
+			}
+			if (bytesRead == -1) {
+				if (errno != EAGAIN) {
+					NSLog(@"read: error = %d (%s)", errno, strerror(errno));
+				}
+			}
+			else {
+				//NSLog(@"read: bytesRead = %zd", bytesRead);
 			}
 		}
+		
+		if (output.length > 0) {
+			return [output copy];
+		}
 		else {
-			//NSLog(@"read: bytesRead = %zd", bytesRead);
+			return nil;
 		}
 	}
 	
-	if (output.length > 0) {
-		return [output copy];
-	}
-	else {
-		return nil;
-	}
+	return nil;
 }
 
 - (void)close
@@ -232,6 +236,8 @@
 	}
 }
 
+// https://developer.apple.com/library/archive/qa/qa1340/_index.html
+
 void powerCallback(void *refCon, io_service_t service, natural_t messageType, void *messageArgument)
 {
 	[(__bridge Serial *)refCon powerMessageReceived:messageType withArgument:messageArgument];
@@ -241,18 +247,27 @@ void powerCallback(void *refCon, io_service_t service, natural_t messageType, vo
 {
 	switch (messageType)
 	{
+		case kIOMessageCanSystemSleep:
+			IOAllowPowerChange(self.rootPort, (long)messageArgument);
+			NSLog(@"powerMessageReceived: system can sleep");
+			break;
+
 		case kIOMessageSystemWillSleep:
-			[self close];
-			self.needsReopen = YES;
+			//[self close];
+			//self.needsReopen = YES;
 			IOAllowPowerChange(self.rootPort, (long)messageArgument);
 			NSLog(@"powerMessageReceived: system will sleep");
 			break;
 			
 		case kIOMessageSystemHasPoweredOn:
 			NSLog(@"powerMessageReceived: system has powered on");
-			if (self.needsReopen) {
-				[self open];
-			}
+			//if (self.needsReopen) {
+			//	[self open];
+			//}
+			break;
+		
+		default:
+			NSLog(@"powerMessageReceived: messageType = 0x%8x", messageType);
 			break;
 	}
 }
