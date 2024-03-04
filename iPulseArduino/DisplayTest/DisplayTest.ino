@@ -20,7 +20,7 @@ Adafruit_SH1107 display = Adafruit_SH1107(64, 128, &Wire);
 #define BUTTON_B 6
 #define BUTTON_C 5
 
-#define DEBUG 1
+#define DEBUG 0
 
 struct data {
   float cpuUsage;  // value from 0.0 to 1.0 (inclusive)
@@ -81,6 +81,7 @@ void setup() {
 
   //toggleHeartbeat();
   setHeartbeat(false);
+  displayStart();
 
 #if DEBUG
   Serial.println("setup done");
@@ -91,7 +92,10 @@ const int heartbeatInterval = 500;
 const int heartbeatPulse = 50;
 unsigned long previousHeartbeatMillis = 0;
 
-bool needsUpdate = true;
+const int sleepInterval = 5000;
+unsigned long previousSleepMillis = 0;
+
+bool needsUpdate = false;
 
 
 void loop() {
@@ -143,11 +147,16 @@ void loop() {
     displayData(&data);
     setHeartbeat(true);
     previousHeartbeatMillis = currentMillis;
+    previousSleepMillis = currentMillis;
     needsUpdate = false;
   }
   else {
     if (currentMillis - previousHeartbeatMillis > heartbeatPulse) {
       setHeartbeat(false);
+    }
+    if (currentMillis - previousSleepMillis > sleepInterval) {
+      displaySleep();
+      delay(1000);
     }
   }
 }
@@ -218,9 +227,9 @@ void displayData(dataPtr data) {
   char writeUnits[5];
   bytesPerSecondLabel(data->diskWriteBytes, writeLabel, writeUnits);
 
-  Serial.print(readLabel);
-  Serial.print(" ");
-  Serial.println(readUnits);
+  // Serial.print(readLabel);
+  // Serial.print(" ");
+  // Serial.println(readUnits);
  
   display.clearDisplay();
 
@@ -255,5 +264,25 @@ void displayData(dataPtr data) {
   display.drawBitmap(64, 64 - 8, bitmapUptime, 8, 8, SH110X_WHITE);
 
   //displayGraph("\x80", "   -", "TBD", indent, start + (stride * 6), 0);
+  display.display();
+}
+
+void displayStart() {
+  display.clearDisplay();
+  display.setCursor(16, 8);
+  display.print("Start iPulse from");
+  display.setCursor(16, 17);
+  display.print("the Terminal on");
+  display.setCursor(16, 26);
+  display.print("your Mac.");
+  display.display();
+}
+
+void displaySleep() {
+  int x = random(0, 128 - (6 * 4));
+  int y = random(0, 64 - 8);
+  display.clearDisplay();
+  display.setCursor(x, y);
+  display.print("Zzzz");
   display.display();
 }
