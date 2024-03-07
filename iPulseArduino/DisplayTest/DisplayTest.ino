@@ -96,6 +96,7 @@ const int sleepInterval = 5000;
 unsigned long previousSleepMillis = 0;
 
 bool needsUpdate = false;
+//bool needsUpdate = true;
 
 
 void loop() {
@@ -161,10 +162,14 @@ void loop() {
   }
 }
 
+const int16_t barWidth = 64;
+const int16_t spacer = 2;
+const int16_t characterWidth = 5;
+const int16_t characterHeight = 7;
+const int16_t characterSpacer = 1;
+const int16_t bitmapDimension = 7;
+
 void displayGraph(const unsigned char *bitmap, const char *label, const char *units, int16_t x, int16_t y, float value) {
-  const int16_t barWidth = 64;
-  const int16_t spacer = 2;
-  const int16_t character = 5;
 
   if (value < 0.0) {
     value = 0.0;
@@ -175,13 +180,13 @@ void displayGraph(const unsigned char *bitmap, const char *label, const char *un
   
   display.fillRoundRect(x, y, barWidth * value, 7, 2, SH110X_WHITE);
 
-  display.drawBitmap(x + barWidth + spacer, y, bitmap, 8, 8, SH110X_WHITE);
+  display.drawBitmap(x + barWidth + spacer, y, bitmap, 7, 7, SH110X_WHITE);
 
   //display.setCursor(x + w + spacer, y);
   //display.print(icon);
-  display.setCursor(x + barWidth + spacer + character + spacer, y);
+  display.setCursor(x + barWidth + spacer + bitmapDimension + spacer, y);
   display.print(label);
-  display.setCursor(x + barWidth + spacer + character + spacer + ((character + 1) * 4) + spacer, y);
+  display.setCursor(x + barWidth + spacer + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, y);
   display.print(units);
 }
 
@@ -252,16 +257,29 @@ void displayData(dataPtr data) {
   //display.drawRect(0, 64 - 8 - 5, 128, 8 + 5, SH110X_WHITE);
   //display.drawLine(63, 64 - 8 - 5, 63, 64, SH110X_WHITE);
 
-  display.setCursor(0, 64 - 8);
+  int64_t bottomHeight = 64 - characterHeight - characterSpacer;
+
+  display.drawBitmap(indent , bottomHeight, bitmapUptime, 7, 7, SH110X_WHITE);
+  display.setCursor(indent + bitmapDimension + spacer, bottomHeight);
+  display.print("----");
+  display.setCursor(indent + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
+  display.print("days");
+
+  //display.setCursor(0, 64 - 8);
   //display.setCursor(2, 64 - 8 - 2);
-  display.print("--- days");
+  //display.print("---- days");
 
   //display.setCursor(66, 64 - 8);
   //display.setCursor(66, 64 - 8 - 2);
-  display.setCursor(8 + 64 + 2, 64 - 8);
-  display.print("--- avg");
+ 
 
-  display.drawBitmap(64, 64 - 8, bitmapUptime, 8, 8, SH110X_WHITE);
+  display.drawBitmap(indent + barWidth + spacer, bottomHeight, bitmapLoad, 7, 7, SH110X_WHITE);
+  display.setCursor(indent + barWidth + spacer + bitmapDimension + spacer, bottomHeight);
+  display.print("----");
+  display.setCursor(indent + barWidth + spacer + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
+  display.print("load");
+
+  //display.setCursor(x + barWidth + spacer + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, y);
 
   //displayGraph("\x80", "   -", "TBD", indent, start + (stride * 6), 0);
   display.display();
