@@ -64,6 +64,13 @@ class Controller {
 	}
 
 	func start() {
+		let name = "kern.boottime"
+		var size = MemoryLayout<timeval>.size
+		var bootTime = timeval(tv_sec: 0, tv_usec: 0)
+		if sysctlbyname(name, &bootTime, &size, nil, 0) != -1 {
+			debugLog("bootTime seconds = \(bootTime.tv_sec)")
+		}
+
 		guard timer == nil else { return }
 		timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
 			self.collector.collect()
@@ -99,6 +106,10 @@ class Controller {
 					transfer.loadFiveMinutes = Float(loadSample.fiveMinutes)
 					transfer.loadFifteenMinutes = Float(loadSample.fifteenMinutes)
 				}
+				
+				let now = time(nil)
+				transfer.uptime = now - bootTime.tv_sec
+				
 				let encoder = JSONEncoder()
 				encoder.keyEncodingStrategy = .convertToSnakeCase
 				encoder.outputFormatting = [.withoutEscapingSlashes, .prettyPrinted]

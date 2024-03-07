@@ -29,4 +29,6 @@ struct Transfer: Codable {
 	var loadOneMinute: Float?
 	var loadFiveMinutes: Float?
 	var loadFifteenMinutes: Float?
+	
+	var uptime: Int?
 }

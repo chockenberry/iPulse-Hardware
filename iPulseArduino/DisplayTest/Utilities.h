@@ -91,4 +91,46 @@ void bytesPerSecondLabel(int64_t value, char *label, char *units) {
   }
 }
 
+void bytesLabel(int64_t value, char *label, char *units) {
+  if (value == 0) {
+    strcpy(label, "   -");
+    strcpy(units, "B");
+  }
+  else {
+    int maxScale = (int)floorf(log2f(value));
+
+    char *suffix = 0;
+    float scalingPower = 0.0;
+    int decimalPlaces = 0;
+
+    if (maxScale >= 0 && maxScale < 10) {
+      // 0 .. 1K
+      strcpy(units, "B");
+      scalingPower = 0;
+      decimalPlaces = 0;
+    }
+    else if (maxScale >= 10 && maxScale < 20) {
+      // 1K .. 1MB
+      strcpy(units, "KB");
+      scalingPower = 10;
+      decimalPlaces = 0;
+    }
+    else if (maxScale >= 20 && maxScale < 30) {
+      // 1MB .. 1GB
+      strcpy(units, "MB");
+      scalingPower = 20;
+      decimalPlaces = 0;
+    }
+    else {
+      // over 1GB
+      strcpy(units, "GB");
+      scalingPower = 30;
+      decimalPlaces = 1;
+    }
+
+    float scaling = powf(2, scalingPower);
+    snprintf(label, 5, "%4.*f", decimalPlaces, ((float)value / scaling));
+  }
+}
+
 #endif // _Utilities_H_

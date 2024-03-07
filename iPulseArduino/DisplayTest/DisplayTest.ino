@@ -30,6 +30,14 @@ struct data {
 
   int64_t diskReadBytes;
   int64_t diskWriteBytes;
+
+  int64_t memoryPhysicalSize;
+  int64_t memoryWiredSize;
+  int64_t memoryAppSize;
+  int64_t memoryCompressedSize;
+
+  float load;
+  int32_t uptime;
 } data;
 typedef struct data *dataPtr;
 
@@ -121,6 +129,12 @@ void loop() {
       data.networkSentBps = document["network_sent_bps"];
       data.diskReadBytes = document["disk_read_bytes"];
       data.diskWriteBytes = document["disk_write_bytes"];
+      data.memoryPhysicalSize = document["memory_physical_size"];
+      data.memoryWiredSize = document["memory_wired_size"];
+      data.memoryAppSize = document["memory_app_size"];
+      data.memoryCompressedSize = document["memory_compressed_size"];
+      data.load = document["load_five_minutes"];
+      data.uptime = document["uptime"];
 #if DEBUG
       //Serial.println(readString);
       //Serial.printf("foo\n");
@@ -232,6 +246,11 @@ void displayData(dataPtr data) {
   char writeUnits[5];
   bytesPerSecondLabel(data->diskWriteBytes, writeLabel, writeUnits);
 
+  int64_t memoryTotalBytes = data->memoryWiredSize + data->memoryAppSize + data->memoryCompressedSize;
+  char memoryLabel[5];
+  char memoryUnits[5];
+  bytesLabel(memoryTotalBytes, memoryLabel, memoryUnits);
+
   // Serial.print(readLabel);
   // Serial.print(" ");
   // Serial.println(readUnits);
@@ -242,12 +261,13 @@ void displayData(dataPtr data) {
   const float networkScale = 1.0 * 1000.0 * 1000.0; // 1 Mbps
   const float diskScale = 10.0 * 1024.0 * 1024.0; // 10 MB/s
 
+  
   displayGraph(bitmapCPU, cpuLabel, "%", indent, start + (stride * 0), data->cpuUsage);
   displayGraph(bitmapUpload, uploadLabel, uploadUnits, indent, start + (stride * 1), (float)(data->networkSentBps) / networkScale);
   displayGraph(bitmapDownload, downloadLabel, downloadUnits, indent, start + (stride * 2), (float)(data->networkReceivedBps) / networkScale);
   displayGraph(bitmapRead, readLabel, readUnits, indent, start + (stride * 3), (float)(data->diskReadBytes) / diskScale);
   displayGraph(bitmapWrite, writeLabel, writeUnits, indent, start + (stride * 4), (float)(data->diskWriteBytes) / diskScale);
-  displayGraph(bitmapMemory, "   -", "GB", indent, start + (stride * 5), 0);
+  displayGraph(bitmapMemory, memoryLabel, memoryUnits, indent, start + (stride * 5), (float)memoryTotalBytes / (float)data->memoryPhysicalSize );
 
   //display.setCursor(0, 64 - 15);
   //display.print("NEXT TO LAST LINE");
@@ -261,7 +281,15 @@ void displayData(dataPtr data) {
 
   display.drawBitmap(indent , bottomHeight, bitmapUptime, 7, 7, SH110X_WHITE);
   display.setCursor(indent + bitmapDimension + spacer, bottomHeight);
-  display.print("----");
+  int uptimeDecimalPlaces = 1;
+  float daysUptime = (float)data->uptime / 60.0 / 60.0 / 24.0;
+  if (daysUptime > 99.9) {
+    uptimeDecimalPlaces = 0;
+  }
+  char uptimeLabel[5];
+  snprintf(uptimeLabel, 5, "%4.*f", uptimeDecimalPlaces, daysUptime);
+  display.print(uptimeLabel);
+  //display.print("----");
   display.setCursor(indent + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
   display.print("days");
 
@@ -275,7 +303,13 @@ void displayData(dataPtr data) {
 
   display.drawBitmap(indent + barWidth + spacer, bottomHeight, bitmapLoad, 7, 7, SH110X_WHITE);
   display.setCursor(indent + barWidth + spacer + bitmapDimension + spacer, bottomHeight);
-  display.print("----");
+  int loadDecimalPlaces = 1;
+  if (data->load > 99.9) {
+    loadDecimalPlaces = 0;
+  }
+  char loadLabel[5];
+  snprintf(loadLabel, 5, "%4.*f", loadDecimalPlaces, data->load);
+  display.print(loadLabel);
   display.setCursor(indent + barWidth + spacer + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
   display.print("load");
 
