@@ -10,16 +10,20 @@
 
 @import Foundation;
 
+extern NSNotificationName const _Nonnull SerialStateDidChangeNotification;
+
 @interface Serial : NSObject
 
 @property (nonatomic, strong, readonly) NSString *bsdPath;
+@property (nonatomic, assign, readonly) BOOL isOpen;
 
 - (instancetype)initWithBsdPath:(NSString *)bsdPath;
 
 - (void)open;
+- (void)close;
+
 - (void)send:(NSString *)message;
 - (NSString *)read;
-- (void)close;
 
 @end
 

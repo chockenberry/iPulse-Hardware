@@ -474,7 +474,9 @@ struct DiskSnapshot {
 // MARK: -
 
 struct LoadSample {
-	
+	let oneMinute: Double
+	let fiveMinutes: Double
+	let fifteenMinutes: Double
 }
 
 // MARK: -
@@ -529,7 +531,9 @@ class Collector {
 	
 	var processorSamples: [ProcessorSample] = []
 	private var lastProcessorSnapshot: ProcessorSnapshot?
-	
+
+	var loadSamples: [LoadSample] = []
+
 	var graphicsSamples: [GraphicsSample] = []
 	
 	var networkSamples: [NetworkSample] = []
@@ -600,6 +604,7 @@ class Collector {
 		collectProcessor()
 		collectDisk()
 		collectVolumes()
+		collectLoad()
 		//collectGraphics()
 	}
 	
@@ -850,7 +855,7 @@ class Collector {
 			diskSamples.remove(at: 0)
 		}
 		
-		collectorLogger.info("DISK: \(diskSample.description, privacy: .public)")
+		//collectorLogger.info("DISK: \(diskSample.description, privacy: .public)")
 	}
 	
 	private func collectProcessor() {
@@ -926,8 +931,13 @@ class Collector {
 	}
 	
 	private func collectLoad() {
-		//let cpuEntries = IORegistryEntryFromPath()
-		
+#if true
+		var samples: [Double] = [0, 0, 0]
+		getloadavg(&samples, 3)
+		let oneMinute = samples[0]
+		let fiveMinutes = samples[1]
+		let fifteenMinutes = samples[2]
+#else
 		let port = mach_host_self()
 		
 		var machData = host_load_info_data_t()
@@ -939,10 +949,18 @@ class Collector {
 			}
 		}
 		guard result == KERN_SUCCESS else { return }
-		
-		let load = Double(machData.avenrun.0) / Double(LOAD_SCALE)
-		collectorLogger.info("LOAD: average.0 = \(load)")
-		
+		let oneMinute = Double(machData.avenrun.0) / Double(LOAD_SCALE)
+		let fiveMinutes = Double(machData.avenrun.1) / Double(LOAD_SCALE)
+		let fifteenMinutes = Double(machData.avenrun.2) / Double(LOAD_SCALE)
+#endif
+		collectorLogger.info("LOAD: average = \(oneMinute), \(fiveMinutes), \(fifteenMinutes)")
+
+		let loadSample = LoadSample(oneMinute: oneMinute, fiveMinutes: fiveMinutes, fifteenMinutes: fifteenMinutes)
+		loadSamples.append(loadSample)
+		while loadSamples.count > Self.sampleCount {
+			loadSamples.remove(at: 0)
+		}
+
 	}
 	
 	

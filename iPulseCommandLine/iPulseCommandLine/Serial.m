@@ -19,6 +19,8 @@
 #include <IOKit/pwr_mgt/IOPM.h>
 #include <IOKit/pwr_mgt/IOPMLib.h>
 
+NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChangeNotification";
+
 @interface Serial : NSObject
 
 @property (nonatomic, strong, readwrite) NSString *bsdPath;
@@ -54,11 +56,18 @@
 //	[self deregisterForSleepWakeNotification];
 }
 
+- (BOOL)isOpen
+{
+	return (self.fileDescriptor != -1);
+}
+
 - (void)handleError:(NSString *)message
 {
 	if (self.fileDescriptor != -1) {
 		close(self.fileDescriptor);
 		self.fileDescriptor = -1;
+		
+		[NSNotificationCenter.defaultCenter postNotificationName:SerialStateDidChangeNotification object:self];
 	}
 	
 	NSLog(@"error: %@ on %@ - %s (%d)", message, self.bsdPath, strerror(errno), errno);
@@ -129,6 +138,7 @@
 						// Cause the new options to take effect immediately.
 						if (tcsetattr(self.fileDescriptor, TCSANOW, &attributes) != -1) {
 							// success
+							[NSNotificationCenter.defaultCenter postNotificationName:SerialStateDidChangeNotification object:self];
 						}
 						else {
 							[self handleError:@"setting tty attributes"];
@@ -233,6 +243,8 @@
 
 		close(self.fileDescriptor);
 		self.fileDescriptor = -1;
+		
+		[NSNotificationCenter.defaultCenter postNotificationName:SerialStateDidChangeNotification object:self];
 	}
 }
 
