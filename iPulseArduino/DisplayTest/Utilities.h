@@ -8,9 +8,9 @@ void percentageLabel(float value, char *label) {
 }
 
 void bitsPerSecondLabel(int64_t value, char *label, char *units) {
-    if (value == 0) {
+  if (value == 0) {
     strcpy(label, "   -");
-    strcpy(units, "B/s");
+    strcpy(units, "bps");
   }
   else {
     int maxScale = (int)floorf(log10f(value));
