@@ -18,9 +18,19 @@ class Controller {
 	let collector = Collector()
 	
 	init() {
-		serial = Serial(bsdPath: "/dev/cu.usbmodem1444201")
-		serial.open()
-
+		let bsdPath = Serial.defaultBsdPath
+		if bsdPath == nil {
+			print("No path to serial device")
+			exit(1)
+		}
+		
+		debugLog("bsdPath = \(bsdPath!)")
+		serial = Serial(bsdPath: bsdPath!)
+		if !serial.open() {
+			print("could not open serial device = \(bsdPath!)")
+			exit(1)
+		}
+		
 		NotificationCenter.default.addObserver(self, selector: #selector(serialStateDidChange), name: NSNotification.Name.SerialStateDidChange, object: serial)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(willSleep), name: NSWorkspace.willSleepNotification, object: nil)
 		NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
@@ -39,6 +49,10 @@ class Controller {
 	@objc
 	func serialStateDidChange(_ notification: Notification) {
 		print("***** serial state changed")
+		if !serial.isOpen {
+			print("lost connection to serial device = \(serial.bsdPath!)")
+			exit(1)
+		}
 	}
 
 	@objc
@@ -64,6 +78,7 @@ class Controller {
 	}
 
 	func start() {
+		// capture the system boot time for uptime calculations
 		let name = "kern.boottime"
 		var size = MemoryLayout<timeval>.size
 		var bootTime = timeval(tv_sec: 0, tv_usec: 0)
@@ -75,6 +90,7 @@ class Controller {
 		timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
 			self.collector.collect()
 						
+#warning("do this check before building Transfer struct")
 			//if self.serial.isOpen {
 			do {
 				var transfer = Transfer()
@@ -117,7 +133,7 @@ class Controller {
 				do {
 					let data = try encoder.encode(transfer)
 					if let message = String(data: data, encoding: .utf8) {
-						#warning("do this check before building Transfer struct")
+#warning("do this check before building Transfer struct")
 						if self.serial.isOpen {
 							self.serial.send(message)
 						}

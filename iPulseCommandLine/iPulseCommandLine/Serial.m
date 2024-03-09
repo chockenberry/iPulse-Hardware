@@ -8,16 +8,16 @@
 #import <Foundation/Foundation.h>
 
 // for serial port communication
-#include <IOKit/serial/IOSerialKeys.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 
-// for sleep & wake notifications
-#import <IOKit/IOMessage.h>
-#include <IOKit/IOKitLib.h>
-#include <IOKit/pwr_mgt/IOPM.h>
-#include <IOKit/pwr_mgt/IOPMLib.h>
+#import "IOKitHelper.h"
+
+// NOTE: This code originally used IOPMAssertions to check for sleep/wake as described here:
+// https://developer.apple.com/library/archive/qa/qa1340/_index.html
+// There doesn't appear to be any benefit to using these instead of the normal NSWorkspace notifications
+// (e.g. there is no information about Dark Wake/Power Nap).
 
 NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChangeNotification";
 
@@ -28,24 +28,29 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 @property (nonatomic, assign) struct termios originalAttributes;
 @property (nonatomic, assign) BOOL needsReopen;
 
-// for sleep & wake notifications
-@property (nonatomic, assign) io_connect_t rootPort;
-@property (nonatomic, assign) io_object_t notifier;
-
 @end
 
 @implementation Serial
 
 // NOTE: ioctl and fnctl can't be used from Swift. And with this kind of legacy code, who the hell would want to?
 
-- (instancetype)initWithBsdPath:(NSString *)bsdPath
++ (NSString *)defaultBsdPath
+{
+	char bsdPath[MAXPATHLEN];
+	querySerialDevice(bsdPath);
+	if (strlen(bsdPath) > 0) {
+		NSString *result = [NSString stringWithUTF8String:bsdPath];
+		return result;
+	}
+	return nil;
+}
+
+- (instancetype)initWithBsdPath:(NSString * _Nonnull)bsdPath
 {
 	if ((self = [super init])) {
 		self.bsdPath = bsdPath;
 		self.fileDescriptor = -1;
 		self.needsReopen = NO;
-		
-//		[self registerForSleepWakeNotification];
 	}
 	
 	return self;
@@ -53,7 +58,6 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 
 - (void)dealloc
 {
-//	[self deregisterForSleepWakeNotification];
 }
 
 - (BOOL)isOpen
@@ -63,19 +67,19 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 
 - (void)handleError:(NSString *)message
 {
+	NSLog(@"error: %@ on %@ - %s (errno = %d)", message, self.bsdPath, strerror(errno), errno);
+
 	if (self.fileDescriptor != -1) {
 		close(self.fileDescriptor);
 		self.fileDescriptor = -1;
 		
 		[NSNotificationCenter.defaultCenter postNotificationName:SerialStateDidChangeNotification object:self];
 	}
-	
-	NSLog(@"error: %@ on %@ - %s (%d)", message, self.bsdPath, strerror(errno), errno);
 }
 
-- (void)open
+- (BOOL)open
 {
-	NSLog(@"open: %@", self.bsdPath);
+	//NSLog(@"open: %@", self.bsdPath);
 	
 	// Open the serial port read/write, with no controlling terminal, and don't wait for a connection.
 	// The O_NONBLOCK flag also causes subsequent I/O on the device to be non-blocking.
@@ -104,8 +108,8 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 						// Print the current input and output baud rates.
 						// See tcsetattr(4) ("man 4 tcsetattr") for details.
 						
-						NSLog(@"open: current input baud rate is %d\n", (int) cfgetispeed(&attributes));
-						NSLog(@"open: current output baud rate is %d\n", (int) cfgetospeed(&attributes));
+						//NSLog(@"open: current input baud rate is %d\n", (int) cfgetispeed(&attributes));
+						//NSLog(@"open: current output baud rate is %d\n", (int) cfgetospeed(&attributes));
 						
 						// Set raw input (non-canonical) mode, with reads blocking until either a single character
 						// has been received or a one second timeout expires.
@@ -132,13 +136,14 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 						// the current baud rate if the IOSSIOSPEED ioctl was used but will instead return the speed set by the last call
 						// to cfsetspeed.
 						
-						NSLog(@"open: input baud rate changed to %d\n", (int) cfgetispeed(&attributes));
-						NSLog(@"open: output baud rate changed to %d\n", (int) cfgetospeed(&attributes));
+						//NSLog(@"open: input baud rate changed to %d\n", (int) cfgetispeed(&attributes));
+						//NSLog(@"open: output baud rate changed to %d\n", (int) cfgetospeed(&attributes));
 						
 						// Cause the new options to take effect immediately.
 						if (tcsetattr(self.fileDescriptor, TCSANOW, &attributes) != -1) {
 							// success
 							[NSNotificationCenter.defaultCenter postNotificationName:SerialStateDidChangeNotification object:self];
+							return YES;
 						}
 						else {
 							[self handleError:@"setting tty attributes"];
@@ -163,9 +168,11 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 	else {
 		[self handleError:@"opening serial port"];
 	}
+	
+	return NO;
 }
 
-- (void)send:(NSString *)message
+- (void)send:(NSString * _Nonnull)message
 {
 	if (self.fileDescriptor != -1) {
 		//NSLog(@"send: '%@' to %@", message, self.bsdPath);
@@ -181,7 +188,7 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 	}
 }
 
-- (NSString *)read
+- (NSString * _Nullable)read
 {
 	if (self.fileDescriptor != -1) {
 		NSMutableString *output = [NSMutableString new];
@@ -223,7 +230,7 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 - (void)close
 {
 	if (self.fileDescriptor != -1) {
-		NSLog(@"close %@", self.bsdPath);
+		//NSLog(@"close %@", self.bsdPath);
 
 		// Block until all written output has been sent from the device.
 		// Note that this call is simply passed on to the serial device driver.
@@ -246,58 +253,6 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 		
 		[NSNotificationCenter.defaultCenter postNotificationName:SerialStateDidChangeNotification object:self];
 	}
-}
-
-// https://developer.apple.com/library/archive/qa/qa1340/_index.html
-
-void powerCallback(void *refCon, io_service_t service, natural_t messageType, void *messageArgument)
-{
-	[(__bridge Serial *)refCon powerMessageReceived:messageType withArgument:messageArgument];
-}
-
-- (void)powerMessageReceived:(natural_t)messageType withArgument:(void *) messageArgument
-{
-	switch (messageType)
-	{
-		case kIOMessageCanSystemSleep:
-			IOAllowPowerChange(self.rootPort, (long)messageArgument);
-			NSLog(@"powerMessageReceived: system can sleep");
-			break;
-
-		case kIOMessageSystemWillSleep:
-			//[self close];
-			//self.needsReopen = YES;
-			IOAllowPowerChange(self.rootPort, (long)messageArgument);
-			NSLog(@"powerMessageReceived: system will sleep");
-			break;
-			
-		case kIOMessageSystemHasPoweredOn:
-			NSLog(@"powerMessageReceived: system has powered on");
-			//if (self.needsReopen) {
-			//	[self open];
-			//}
-			break;
-		
-		default:
-			NSLog(@"powerMessageReceived: messageType = 0x%8x", messageType);
-			break;
-	}
-}
-
-- (void)registerForSleepWakeNotification
-{
-	IONotificationPortRef notificationPort;
-	io_object_t notifier;
-	self.rootPort = IORegisterForSystemPower((__bridge void *)(self), &notificationPort, powerCallback, &notifier);
-	self.notifier = notifier;
-	NSAssert(self.rootPort != MACH_PORT_NULL, @"IORegisterForSystemPower failed");
-	CFRunLoopAddSource(CFRunLoopGetCurrent(), IONotificationPortGetRunLoopSource(notificationPort), kCFRunLoopDefaultMode);
-}
-
-- (void)deregisterForSleepWakeNotification
-{
-	io_object_t notifier = self.notifier;
-	IODeregisterForSystemPower(&notifier);
 }
 
 @end

@@ -11,6 +11,7 @@
 #import <IOKit/IOKitKeys.h>
 #import <IOKit/graphics/IOGraphicsLib.h>
 #import <IOKit/storage/IOBlockStorageDriver.h>
+#import <IOKit/serial/IOSerialKeys.h>
 
 #import <mach/mach.h>
 #import <mach/mach_types.h>
@@ -18,11 +19,51 @@
 
 #import "IOKitHelper.h"
 
-// NOTE: IOKit is not supported by Swift (understandable!). These functions provide some basic information to the Collector class.
+// NOTE: IOKit is not supported by Swift (understandable!). These functions provide some basic information to the Collector
+// and Serial classes.
+
+// NOTE: It's very cool that IOMasterPort was deprecated and replaced with IOMainPort - it's never easy to do the right thing,
+// especially when it's embedded in layers and layers of legacy code.
+
+void querySerialDevice(char *path) {
+	mach_port_t port;
+	IOMainPort(MACH_PORT_NULL, &port);
+
+	// NOTE: Query in shell with: ioreg -c "IOSerialBSDClient" -l -r -w 0
+	
+	// find the first "usbmodem" device path and return it
+	
+	io_iterator_t iterator;
+	if (IOServiceGetMatchingServices(port, IOServiceMatching(kIOSerialBSDServiceValue), &iterator) == kIOReturnSuccess) {
+		for (io_registry_entry_t entry = IOIteratorNext(iterator); entry; entry = IOIteratorNext(iterator)) {
+			CFTypeRef calloutDeviceRef = IORegistryEntryCreateCFProperty(entry, CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
+			if (calloutDeviceRef) {
+				const char *devicePath = CFStringGetCStringPtr(calloutDeviceRef, kCFStringEncodingUTF8);
+				if (devicePath) {
+					if (strstr(devicePath, "usbmodem") != NULL) {
+						strncpy(path, devicePath, MAXPATHLEN);
+
+						CFRelease(calloutDeviceRef);
+						IOObjectRelease(entry);
+						IOObjectRelease(iterator);
+
+						return;
+					}
+				}
+				CFRelease(calloutDeviceRef);
+			}
+			
+			IOObjectRelease(entry);
+		}
+	}
+	IOObjectRelease(iterator);
+	
+	path[0] = 0;
+}
 
 void queryGraphicsUtilization(double *outPercentage, UInt64 *outMemorySize) {
 	mach_port_t port;
-	IOMainPort(MACH_PORT_NULL, &port); // very cool that IOMasterPort was deprecated and replaced with IOMainPort - it's never easy to do the right thing
+	IOMainPort(MACH_PORT_NULL, &port);
 
 	// NOTE: Query in shell with: ioreg -c "IOAccelerator" -l -r -w 0
 
@@ -74,7 +115,7 @@ void queryGraphicsUtilization(double *outPercentage, UInt64 *outMemorySize) {
 
 void queryDiskActivity(UInt64 *outReadCount, UInt64 *outReadBytes, UInt64 *outWriteCount, UInt64 *outWriteBytes) {
 	mach_port_t port;
-	IOMainPort(MACH_PORT_NULL, &port); // very cool that IOMasterPort was deprecated and replaced with IOMainPort - it's never easy to do the right thing
+	IOMainPort(MACH_PORT_NULL, &port);
 
 	// NOTE: Query in shell with: ioreg -c "IOBlockStorageDriver" -l -r -w 0
 	

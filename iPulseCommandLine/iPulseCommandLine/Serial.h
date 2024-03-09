@@ -14,16 +14,18 @@ extern NSNotificationName const _Nonnull SerialStateDidChangeNotification;
 
 @interface Serial : NSObject
 
-@property (nonatomic, strong, readonly) NSString *bsdPath;
+@property (class, nonatomic, readonly, nullable) NSString *defaultBsdPath;
+
+@property (nonatomic, strong, readonly, nullable) NSString *bsdPath;
 @property (nonatomic, assign, readonly) BOOL isOpen;
 
-- (instancetype)initWithBsdPath:(NSString *)bsdPath;
+- (_Nonnull instancetype)initWithBsdPath:(NSString * _Nonnull)bsdPath;
 
-- (void)open;
+- (BOOL)open;
 - (void)close;
 
-- (void)send:(NSString *)message;
-- (NSString *)read;
+- (void)send:(NSString * _Nonnull)message;
+- (NSString * _Nullable)read;
 
 @end
 
