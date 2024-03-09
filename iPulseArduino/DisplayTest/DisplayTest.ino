@@ -177,7 +177,7 @@ void loop() {
 }
 
 const int16_t barWidth = 64;
-const int16_t spacer = 2;
+const int16_t spacer = 3;
 const int16_t characterWidth = 5;
 const int16_t characterHeight = 7;
 const int16_t characterSpacer = 1;
