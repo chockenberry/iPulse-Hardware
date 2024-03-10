@@ -127,13 +127,10 @@ void queryDiskActivity(UInt64 *outReadCount, UInt64 *outReadBytes, UInt64 *outWr
 	io_iterator_t iterator;
 	
 	if (IOServiceGetMatchingServices(port, IOServiceMatching(kIOBlockStorageDriverClass), &iterator) == kIOReturnSuccess) {
-		for (io_registry_entry_t entry = IOIteratorNext(iterator); entry; entry = IOIteratorNext(iterator)) {
+		io_registry_entry_t entry;
+		while ((entry = IOIteratorNext(iterator))) {
 			CFMutableDictionaryRef entryProperties;
-			if (IORegistryEntryCreateCFProperties(entry, &entryProperties, kCFAllocatorDefault, kNilOptions) != kIOReturnSuccess) {
-				IOObjectRelease(entry);
-				continue;
-			}
-			else {
+			if (IORegistryEntryCreateCFProperties(entry, &entryProperties, kCFAllocatorDefault, kNilOptions) == kIOReturnSuccess) {
 				CFDictionaryRef statisticsProperties = (CFDictionaryRef)CFDictionaryGetValue(entryProperties, CFSTR(kIOBlockStorageDriverStatisticsKey));
 				if (statisticsProperties != NULL) {
 					NSNumber *reads = (__bridge NSNumber *)CFDictionaryGetValue(statisticsProperties, CFSTR(kIOBlockStorageDriverStatisticsReadsKey));
@@ -152,16 +149,14 @@ void queryDiskActivity(UInt64 *outReadCount, UInt64 *outReadBytes, UInt64 *outWr
 					if (bytesWritten != nil) {
 						writeBytes += bytesWritten.unsignedLongLongValue;
 					}
+					CFRelease(entryProperties);
 				}
-				
-				CFRelease(entryProperties);
-				IOObjectRelease(entry);
-				break;
 			}
+			IOObjectRelease(entry);
 		}
 		IOObjectRelease(iterator);
 	}
-	
+
 	mach_port_deallocate(mach_task_self(), port);
 	
 	if (outReadCount != nil) {
