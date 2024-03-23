@@ -25,6 +25,7 @@
 // NOTE: It's very cool that IOMasterPort was deprecated and replaced with IOMainPort - it's never easy to do the right thing,
 // especially when it's embedded in layers and layers of legacy code.
 
+/*
 void querySerialDevice(char *path) {
 	mach_port_t port;
 	IOMainPort(MACH_PORT_NULL, &port);
@@ -58,8 +59,11 @@ void querySerialDevice(char *path) {
 	}
 	IOObjectRelease(iterator);
 	
+	mach_port_deallocate(mach_task_self(), port);
+
 	path[0] = 0;
 }
+*/
 
 void queryGraphicsUtilization(double *outPercentage, UInt64 *outMemorySize) {
 	mach_port_t port;

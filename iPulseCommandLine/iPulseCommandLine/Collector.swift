@@ -931,29 +931,12 @@ class Collector {
 	}
 	
 	private func collectLoad() {
-#if true
 		var samples: [Double] = [0, 0, 0]
 		getloadavg(&samples, 3)
 		let oneMinute = samples[0]
 		let fiveMinutes = samples[1]
 		let fifteenMinutes = samples[2]
-#else
-		let port = mach_host_self()
-		
-		var machData = host_load_info_data_t()
-		var count = mach_msg_type_number_t(MemoryLayout<host_load_info_data_t>.stride / MemoryLayout<integer_t>.stride)
-		
-		let result = withUnsafeMutablePointer(to: &machData) {
-			$0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-				host_statistics64(port, HOST_LOAD_INFO, $0, &count)
-			}
-		}
-		guard result == KERN_SUCCESS else { return }
-		let oneMinute = Double(machData.avenrun.0) / Double(LOAD_SCALE)
-		let fiveMinutes = Double(machData.avenrun.1) / Double(LOAD_SCALE)
-		let fifteenMinutes = Double(machData.avenrun.2) / Double(LOAD_SCALE)
-#endif
-		collectorLogger.info("LOAD: average = \(oneMinute), \(fiveMinutes), \(fifteenMinutes)")
+		//collectorLogger.info("LOAD: average = \(oneMinute), \(fiveMinutes), \(fifteenMinutes)")
 
 		let loadSample = LoadSample(oneMinute: oneMinute, fiveMinutes: fiveMinutes, fifteenMinutes: fifteenMinutes)
 		loadSamples.append(loadSample)

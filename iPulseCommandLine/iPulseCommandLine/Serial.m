@@ -12,7 +12,18 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 
-#import "IOKitHelper.h"
+// for IOKit
+#import <IOKit/IOKitLib.h>
+#import <IOKit/IOKitKeys.h>
+#import <IOKit/serial/IOSerialKeys.h>
+
+#import <mach/mach.h>
+#import <mach/mach_types.h>
+#import <mach/mach_host.h>
+
+#import "Serial.h"
+
+//#import "IOKitHelper.h"
 
 // NOTE: This code originally used IOPMAssertions to check for sleep/wake as described here:
 // https://developer.apple.com/library/archive/qa/qa1340/_index.html
@@ -21,7 +32,7 @@
 
 NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChangeNotification";
 
-@interface Serial : NSObject
+@interface Serial ()
 
 @property (nonatomic, strong, readwrite) NSString *bsdPath;
 @property (nonatomic, assign) int fileDescriptor;
@@ -29,6 +40,44 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 @property (nonatomic, assign) BOOL needsReopen;
 
 @end
+
+void querySerialDevice(char *path) {
+	mach_port_t port;
+	IOMainPort(MACH_PORT_NULL, &port);
+
+	// NOTE: Query in shell with: ioreg -c "IOSerialBSDClient" -l -r -w 0
+	
+	// find the first "usbmodem" device path and return it
+	
+	io_iterator_t iterator;
+	if (IOServiceGetMatchingServices(port, IOServiceMatching(kIOSerialBSDServiceValue), &iterator) == kIOReturnSuccess) {
+		for (io_registry_entry_t entry = IOIteratorNext(iterator); entry; entry = IOIteratorNext(iterator)) {
+			CFTypeRef calloutDeviceRef = IORegistryEntryCreateCFProperty(entry, CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
+			if (calloutDeviceRef) {
+				const char *devicePath = CFStringGetCStringPtr(calloutDeviceRef, kCFStringEncodingUTF8);
+				if (devicePath) {
+					if (strstr(devicePath, "usbmodem") != NULL) {
+						strncpy(path, devicePath, MAXPATHLEN);
+
+						CFRelease(calloutDeviceRef);
+						IOObjectRelease(entry);
+						IOObjectRelease(iterator);
+
+						return;
+					}
+				}
+				CFRelease(calloutDeviceRef);
+			}
+			
+			IOObjectRelease(entry);
+		}
+	}
+	IOObjectRelease(iterator);
+	
+	mach_port_deallocate(mach_task_self(), port);
+
+	path[0] = 0;
+}
 
 @implementation Serial
 
@@ -47,6 +96,8 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 
 - (instancetype)initWithBsdPath:(NSString * _Nonnull)bsdPath
 {
+	NSLog(@"%s called", __PRETTY_FUNCTION__);
+	
 	if ((self = [super init])) {
 		self.bsdPath = bsdPath;
 		self.fileDescriptor = -1;
@@ -58,6 +109,7 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 
 - (void)dealloc
 {
+	NSLog(@"%s called", __PRETTY_FUNCTION__);
 }
 
 - (BOOL)isOpen
