@@ -138,8 +138,7 @@ class Controller {
 	
 	private func collectAndTransfer() {
 		self.collector.collect()
-		
-		return
+
 #warning("do this check before building Transfer struct")
 		//if self.serial.isOpen {
 		do {
@@ -163,6 +162,7 @@ class Controller {
 				transfer.diskWriteBytes = diskSample.writeBytes
 			}
 			if let memorySample = self.collector.memorySamples.last {
+				transfer.memoryPhysicalSize = ProcessInfo.processInfo.physicalMemory
 				transfer.memoryWiredSize = memorySample.wiredSize
 				transfer.memoryAppSize = memorySample.appMemorySize
 				transfer.memoryCompressedSize = memorySample.compressedSize

@@ -21,7 +21,7 @@ struct Transfer: Codable {
 	var diskWriteCount: UInt64?
 	var diskWriteBytes: UInt64?
 
-	var memoryPhysicalSize = ProcessInfo.processInfo.physicalMemory
+	var memoryPhysicalSize: UInt64?
 	var memoryWiredSize: UInt64?
 	var memoryAppSize: UInt64?
 	var memoryCompressedSize: UInt64?

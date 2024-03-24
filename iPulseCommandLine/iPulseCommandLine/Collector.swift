@@ -724,6 +724,7 @@ class Collector {
 		}
 		
 		freeifaddrs(interfaceAddresses)
+		interfaceAddresses = nil
 		
 		let deltaReceivedPackets: UInt32
 		let deltaReceivedErrors: UInt32
@@ -926,8 +927,10 @@ class Collector {
 //			collectorLogger.info("CPU: \(self.processorCoreInfo[index].type) \(coreSample.description)")
 //		}
 		
-		// use bitPattern? https://stackoverflow.com/a/48630296/132867
-		vm_deallocate(mach_task_self_, vm_address_t(processorInfoArray.pointee), vm_size_t(processorInfoCount))
+		// NOTE: The following line of code leaks memory on because it doesn't use bitPattern: https://stackoverflow.com/a/48630296/132867
+		// This took a long time to figure out.
+		//vm_deallocate(mach_task_self_, vm_address_t(processorInfoArray.pointee), vm_size_t(processorInfoCount))
+		vm_deallocate(mach_task_self_, vm_address_t(bitPattern: processorInfoArray), vm_size_t(processorInfoCount))
 	}
 	
 	private func collectLoad() {

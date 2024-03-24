@@ -11,9 +11,7 @@ import Foundation
 
 // TODO: Parse arguments: https://www.swift.org/blog/argument-parser/
 
-autoreleasepool {
-	let controller = Controller()
-	controller.start()
-	RunLoop.current.run()
-}
+let controller = Controller()
+controller.start()
+RunLoop.current.run()
 
