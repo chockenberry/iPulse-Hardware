@@ -29,7 +29,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		44314D442B8A91DF00BC4914 /* ipulse */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ipulse; sourceTree = BUILT_PRODUCTS_DIR; };
+		44314D442B8A91DF00BC4914 /* ipulsed */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ipulsed; sourceTree = BUILT_PRODUCTS_DIR; };
 		44314D472B8A91DF00BC4914 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		44314D4E2B8A92AC00BC4914 /* Controller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controller.swift; sourceTree = "<group>"; };
 		44314D502B8A93D100BC4914 /* iPulseCommandLine-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "iPulseCommandLine-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -64,7 +64,7 @@
 		44314D452B8A91DF00BC4914 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				44314D442B8A91DF00BC4914 /* ipulse */,
+				44314D442B8A91DF00BC4914 /* ipulsed */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -103,7 +103,7 @@
 			);
 			name = iPulseCommandLine;
 			productName = iPulseCommandLine;
-			productReference = 44314D442B8A91DF00BC4914 /* ipulse */;
+			productReference = 44314D442B8A91DF00BC4914 /* ipulsed */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -284,7 +284,7 @@
 				DEVELOPMENT_TEAM = RYQWBTQRPT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_NAME = ipulse;
+				PRODUCT_NAME = ipulsed;
 				SWIFT_OBJC_BRIDGING_HEADER = "iPulseCommandLine/iPulseCommandLine-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -299,7 +299,7 @@
 				DEVELOPMENT_TEAM = RYQWBTQRPT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_NAME = ipulse;
+				PRODUCT_NAME = ipulsed;
 				SWIFT_OBJC_BRIDGING_HEADER = "iPulseCommandLine/iPulseCommandLine-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
