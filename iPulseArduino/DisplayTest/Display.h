@@ -152,16 +152,20 @@ void displayDisks(Adafruit_SH1107 &display, DataPtr data) {
   const float networkScale = 1.0 * 1000.0 * 1000.0; // 1 Mbps
   const float diskScale = 10.0 * 1024.0 * 1024.0; // 10 MB/s
   
-  for (int i = 0; i < 6; i++) {
-    char diskLabel[9];
-    snprintf(diskLabel, sizeof(diskLabel), "%s %d", "Volume", i);
+  for (int i = 0; i < volumeCount; i++) {
+    Volume volume = data->volumes[i];
+    if (volume.inUse) {
+      char diskLabel[volumeNameLength + 1];
+      snprintf(diskLabel, volumeNameLength + 1, data->volumes[i].name);
 
-    int64_t memoryTotalBytes = (int64_t)(1024 * 1024 * 1024) * 2 / (i + 1);
-    char sizeLabel[5];
-    char sizeUnits[5];
-    bytesLabel(memoryTotalBytes, sizeLabel, sizeUnits);
+      int64_t totalBytes = data->volumes[i].totalBytes;
+      int64_t usedBytes = totalBytes - data->volumes[i].availableBytes;
+      char sizeLabel[5];
+      char sizeUnits[5];
+      bytes10Label(usedBytes, sizeLabel, sizeUnits);
 
-    displayDisk(display, diskLabel, sizeLabel, sizeUnits, indent, start + (stride * i), (float)(5 - i + 1) / 6.0);
+      displayDisk(display, diskLabel, sizeLabel, sizeUnits, indent, start + (stride * i), (float)usedBytes / (float)totalBytes);
+    }
   }
  
   display.drawLine(0, 64 - 8 - 3, 128, 64 - 8 - 3, SH110X_WHITE);
@@ -198,12 +202,13 @@ void displayDisks(Adafruit_SH1107 &display, DataPtr data) {
 
 void displayStart(Adafruit_SH1107 &display) {
   display.clearDisplay();
-  display.setCursor(16, ((characterWidth + characterSpacer) * 2));
-  display.print("Start iPulse from");
-  display.setCursor(16, ((characterWidth + characterSpacer) * 3) + (spacer * 1));
-  display.print(" the Terminal on");
-  display.setCursor(16, ((characterWidth + characterSpacer) * 4) + (spacer * 2));
-  display.print("    your Mac.");
+  display.setCursor(10, ((characterWidth + characterSpacer) * 3));
+  display.print(" Start the iPulse");
+  display.setCursor(10, ((characterWidth + characterSpacer) * 4) + (spacer * 1));
+  display.print("daemon in Terminal");
+  display.setCursor(10, ((characterWidth + characterSpacer) * 5) + (spacer * 2));
+  display.print("   on your Mac.");
+  display.drawRoundRect(0, 0, 128, 64, 10, SH110X_WHITE);
   display.display();
 }
 

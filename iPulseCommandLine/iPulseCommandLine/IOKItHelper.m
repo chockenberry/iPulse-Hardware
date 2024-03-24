@@ -25,7 +25,6 @@
 // NOTE: It's very cool that IOMasterPort was deprecated and replaced with IOMainPort - it's never easy to do the right thing,
 // especially when it's embedded in layers and layers of legacy code.
 
-/*
 void querySerialDevice(char *path) {
 	mach_port_t port;
 	IOMainPort(MACH_PORT_NULL, &port);
@@ -63,7 +62,6 @@ void querySerialDevice(char *path) {
 
 	path[0] = 0;
 }
-*/
 
 void queryGraphicsUtilization(double *outPercentage, UInt64 *outMemorySize) {
 	mach_port_t port;
@@ -84,15 +82,16 @@ void queryGraphicsUtilization(double *outPercentage, UInt64 *outMemorySize) {
 			}
 			else {
 				NSDictionary *properties = (__bridge NSDictionary *)entryProperties;
+				NSDictionary *performanceProperties = [properties objectForKey:@"PerformanceStatistics"];
 				{
-					id property = properties[@"Device Utilization %"];
+					id property = performanceProperties[@"Device Utilization %"];
 					if (property != nil && [property isKindOfClass:[NSNumber class]]) {
 						NSNumber *deviceUtilization = (NSNumber *)property;
 						percentage = deviceUtilization.doubleValue;
 					}
 				}
 				{
-					id property = properties[@"In use system memory"];
+					id property = performanceProperties[@"In use system memory"];
 					if (property != nil && [property isKindOfClass:[NSNumber class]]) {
 						NSNumber *memoryUsage = (NSNumber *)property;
 						memorySize = memoryUsage.unsignedLongLongValue;

@@ -10,6 +10,9 @@ import Foundation
 struct Transfer: Codable {
 	
 	var cpuUsage: Float? // 0.0 to 1.0 (inclusive)
+
+	var gpuUsage: Float? // 0.0 to 1.0 (inclusive)
+	var gpuSize: UInt64?
 	
 	var networkReceivedPackets: UInt32?
 	var networkReceivedBps: UInt64?
@@ -30,5 +33,14 @@ struct Transfer: Codable {
 	var loadFiveMinutes: Float?
 	var loadFifteenMinutes: Float?
 	
-	var uptime: Int?
+	var volumes: [TransferVolume]?
+	
+	var uptime: Int? // seconds
+}
+
+struct TransferVolume: Codable {
+	let name: String
+	
+	let totalBytes: UInt64
+	let availableBytes: UInt64
 }

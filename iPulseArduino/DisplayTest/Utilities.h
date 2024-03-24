@@ -133,4 +133,41 @@ void bytesLabel(int64_t value, char *label, char *units) {
   }
 }
 
+void bytes10Label(int64_t value, char *label, char *units) {
+  if (value == 0) {
+    strcpy(label, "   -");
+    strcpy(units, "B");
+  }
+  else {
+    int maxScale = (int)floorf(log10f(value));
+
+    char *suffix = 0;
+    float scalingPower = 0.0;
+
+    if (maxScale >= 0 && maxScale < 3) {
+      // 0 .. 1000
+      strcpy(units, "B");
+      scalingPower = 0;
+    }
+    else if (maxScale >= 3 && maxScale < 6) {
+      // 1000 .. 1,000,000
+      strcpy(units, "KB");
+      scalingPower = 3;
+    }
+    else if (maxScale >= 6 && maxScale < 9) {
+      // 1,000,000 .. 1,000,000,000
+      strcpy(units, "MB");
+      scalingPower = 6;
+    }
+    else {
+      // over 1,000,000,000
+      strcpy(units, "GB");
+      scalingPower = 9;
+    }
+
+    float scaling = powf(10, scalingPower);
+    snprintf(label, 5, "%4.0f", ((float)value / scaling));
+  }
+}
+
 #endif // _Utilities_H_

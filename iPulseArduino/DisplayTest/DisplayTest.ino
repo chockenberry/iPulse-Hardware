@@ -68,7 +68,7 @@ bool hasFirstUpdate = false;
 bool needsUpdate = false;
 
 // debounced button states
-unsigned long debounceDelay = 50;
+unsigned long debounceDelay = 100;
 unsigned long previousButtonAMillis = 0;
 unsigned long previousButtonBMillis = 0;
 unsigned long previousButtonCMillis = 0;
@@ -118,22 +118,22 @@ void loop() {
     previousButtonAMillis = 0;
   }
 
-  if (!digitalRead(BUTTON_B)) {
-    if (previousButtonBMillis == 0) {
-      previousButtonBMillis = currentMillis;
-    } else if (currentMillis - previousButtonBMillis > debounceDelay) {
-      pressedButtonB = true;
+  if (!digitalRead(BUTTON_C)) {
+    if (previousButtonCMillis == 0) {
+      previousButtonCMillis = currentMillis;
+    } else if (currentMillis - previousButtonCMillis > debounceDelay) {
+      pressedButtonC = true;
     }
   } else {
-    if (pressedButtonB) {
+    if (pressedButtonC) {
       if (hasFirstUpdate) {
       //if (true) {
         displayingActivity = !displayingActivity;
         needsUpdate = true;
       }
-      pressedButtonB = false;
+      pressedButtonC = false;
     }
-    previousButtonBMillis = 0;
+    previousButtonCMillis = 0;
   }
 
   if (needsUpdate) {

@@ -6,9 +6,6 @@
 //
 
 import Foundation
-import Network
-import os.log
-import Metal
 
 extension FormatStyle where Self == FloatingPointFormatStyle<Double> {
 	static var normalized: FloatingPointFormatStyle<Double> {
@@ -27,7 +24,7 @@ extension Double {
 		if self == 0.0 {
 			return "–"
 		}
-#if true
+
 		let maxScale = Int(floor(log2(self)))
 		
 		let suffix: String
@@ -53,44 +50,9 @@ extension Double {
 		}
 		let scaling = pow(2, scalingPower)
 		return String(format: "%.*f %@", decimalPlaces, self / scaling, suffix)
-		
-#else
-		let measurement = Measurement(value: self, unit: UnitInformationStorage.bytes)
-		
-#if false
-		var formattedMeasurement = measurement.formatted(.byteCount(style: .memory, allowedUnits: .all, spellsOutZero: false, includesActualByteCount: false))
-		if let suffix {
-			formattedMeasurement += suffix
-		}
-		return formattedMeasurement
-#else
-		let unitTypes = [ UnitInformationStorage.pebibytes, UnitInformationStorage.gibibytes, UnitInformationStorage.mebibytes, UnitInformationStorage.kibibytes ]
-		//		let unitTypes = [ UnitInformationStorage.petabytes, UnitInformationStorage.gigabytes, UnitInformationStorage.megabytes, UnitInformationStorage.kilobytes ]
-		var convertedMeasurement = Measurement(value: 0, unit: UnitInformationStorage.bytes)
-		for unitType in unitTypes {
-			convertedMeasurement = measurement.converted(to: unitType)
-			if convertedMeasurement.value >= 1 {
-				break
-			}
-		}
-		
-		let measurementFormatter = MeasurementFormatter()
-		measurementFormatter.unitStyle = .medium
-		measurementFormatter.unitOptions = .providedUnit
-		measurementFormatter.numberFormatter.maximumFractionDigits = fractionDigits
-		measurementFormatter.numberFormatter.minimumFractionDigits = fractionDigits
-		
-		var formattedMeasurement = measurementFormatter.string(from: convertedMeasurement)
-		if let suffix {
-			formattedMeasurement += suffix
-		}
-		return formattedMeasurement
-#endif
-#endif
 	}
 	
 	func bits() -> String {
-#if true
 		if self == 0.0 {
 			return "–"
 		}
@@ -121,49 +83,11 @@ extension Double {
 		}
 		let scaling = pow(10, scalingPower)
 		return String(format: "%.*f %@", decimalPlaces, bitsPerSecond / scaling, suffix)
-		
-#else
-		let measurement = Measurement(value: self, unit: UnitInformationStorage.bytes)
-		
-		let unitTypes = [ UnitInformationStorage.petabits, UnitInformationStorage.gigabits, UnitInformationStorage.megabits, UnitInformationStorage.kilobits ]
-		//		let unitTypes = [ UnitInformationStorage.pebibits, UnitInformationStorage.gibibits, UnitInformationStorage.mebibits, UnitInformationStorage.kibibits ]
-		var convertedMeasurement = Measurement(value: 0, unit: UnitInformationStorage.bytes)
-		for unitType in unitTypes {
-			convertedMeasurement = measurement.converted(to: unitType)
-			if convertedMeasurement.value >= 1 {
-				break
-			}
-		}
-		
-		let measurementFormatter = MeasurementFormatter()
-		measurementFormatter.unitStyle = .medium
-		measurementFormatter.unitOptions = .providedUnit
-		measurementFormatter.numberFormatter.maximumFractionDigits = 1
-		measurementFormatter.numberFormatter.minimumFractionDigits = 1
-		
-		var formattedMeasurement = measurementFormatter.string(from: convertedMeasurement)
-		if let suffix {
-			formattedMeasurement += suffix
-		}
-		return formattedMeasurement
-#endif
 	}
 	
 }
 
 // MARK: -
-
-// memory
-//		free page count
-//		active page count
-//		inactive page count
-//		wired page count
-//		compressed page count
-//
-//		page in delta
-//		page out delta
-//
-// https://stackoverflow.com/a/35833857/132867 - good explainer on paging
 
 struct MemorySample {
 	let wiredPageCount: UInt32
@@ -182,6 +106,8 @@ struct MemorySample {
 		wiredPageCount + activePageCount + inactivePageCount + freePageCount + compressedPageCount
 		//memoryUsedCount + cachedFilesCount + freePageCount
 	}
+
+	// https://stackoverflow.com/a/35833857/132867 - good explainer on paging
 
 	// https://support.apple.com/guide/activity-monitor/view-memory-usage-actmntr1004/mac
 	// https://apple.stackexchange.com/questions/258166/what-is-app-memory-calculated-from
@@ -293,15 +219,6 @@ struct MemorySnapshot {
 
 // MARK: -
 
-// cpu
-//		per processor
-//			user
-//			system
-//			idle
-//			nice
-// https://gist.github.com/paalgyula/47c8e37f6785bed6634d1cc1fb5697bc
-// https://en.wikipedia.org/wiki/Apple_silicon
-
 struct CoreSample {
 	let system: Double
 	let user: Double
@@ -394,13 +311,6 @@ struct NetworkSample {
 		return UInt64(sentBytes) * 8
 	}
 
-}
-
-extension FormatStyle where Self == FloatingPointFormatStyle<Double> {
-	static var bitsPerSecond: FloatingPointFormatStyle<Double> {
-		let style = FloatingPointFormatStyle<Double>()
-		return style.scale(100).precision(.fractionLength(1))
-	}
 }
 
 extension NetworkSample: CustomStringConvertible {
@@ -520,7 +430,7 @@ struct StorageSample {
 	let volumeSamples: [VolumeSample]
 }
 
-let collectorLogger = Logger(subsystem: "com.iconfactory.iPulse.Collector", category: "Collector")
+// MARK: -
 
 class Collector {
 	
@@ -596,7 +506,7 @@ class Collector {
 		return result
 	}()
 	
-	// use mach_absolute_time for sample time: https://developer.apple.com/library/archive/qa/qa1398/_index.html
+	// use mach_absolute_time for sample time? https://developer.apple.com/library/archive/qa/qa1398/_index.html
 	
 	func collect() {
 		collectMemory()
@@ -605,7 +515,7 @@ class Collector {
 		collectDisk()
 		collectVolumes()
 		collectLoad()
-		//collectGraphics()
+		collectGraphics()
 	}
 	
 	func reset() {
@@ -645,49 +555,16 @@ class Collector {
 			memorySamples.remove(at: 0)
 		}
 		
-		//collectorLogger.info("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.memoryUsedSize + memorySample.cachedFilesSize + memorySample.freeSize).bytes()) sum - \(Double(memorySample.totalSize).bytes()) total")
-		//collectorLogger.info("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.totalSize).bytes()) total")
-		
-#if false
-		do {
-			let TASK_VM_INFO_COUNT = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
-			let TASK_VM_INFO_REV5_COUNT = mach_msg_type_number_t(MemoryLayout.offset(of: \task_vm_info_data_t.ledger_swapins)! / MemoryLayout<integer_t>.size)
-			var info = task_vm_info_data_t()
-			var count = TASK_VM_INFO_COUNT
-			let kr = withUnsafeMutablePointer(to: &info) { infoPtr in
-				infoPtr.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { intPtr in
-					task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), intPtr, &count)
-				}
-			}
-			guard
-				kr == KERN_SUCCESS,
-				count >= TASK_VM_INFO_REV5_COUNT
-			else { return }
-			
-			collectorLogger.info("MEMORY: device = \(info.device), internal = \(info.internal), external = \(info.external), reusable = \(info.reusable), compressed = \(info.compressed)")
-		}
-#endif
+		//debugLog("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.memoryUsedSize + memorySample.cachedFilesSize + memorySample.freeSize).bytes()) sum - \(Double(memorySample.totalSize).bytes()) total")
+		//debugLog("MEMORY: \(memorySample.description) - \(Double(memorySample.memoryUsedSize).bytes()) used - \(Double(memorySample.cachedFilesSize).bytes()) cached - \(Double(memorySample.totalSize).bytes()) total")
 	}
 	
-	
-	private func displayNetworkString(for flags: UInt32) -> String {
-		let up = 			(flags & UInt32(IFF_UP) != 0 ? "up" : "  ")
-		let broadcast = 	(flags & UInt32(IFF_BROADCAST) != 0 ? "br" : "  ")
-		let debug =		 	(flags & UInt32(IFF_DEBUG) != 0 ? "db" : "  ")
-		let loopback = 		(flags & UInt32(IFF_LOOPBACK) != 0 ? "lo" : "  ")
-		let pointToPoint = 	(flags & UInt32(IFF_POINTOPOINT) != 0 ? "pp" : "  ")
-		let running = 	(flags & UInt32(IFF_RUNNING) != 0 ? "rn" : "  ")
-		
-		return("\(up)|\(broadcast)|\(debug)|\(loopback)|\(pointToPoint)|\(running)")
-	}
-	
-	// some interesting code to dig around in routes here: https://github.com/Shmoopi/iOS-System-Services/blob/master/System%20Services/Utilities/SSNetworkInfo.m
 	private func collectNetwork() {
 		var interfaceAddresses: UnsafeMutablePointer<ifaddrs>? = nil
 		
 		let error = getifaddrs(&interfaceAddresses)
 		guard error == 0 else {
-			collectorLogger.info("NETWORK: error = \(error)")
+			releaseLog("NETWORK: error = \(error)")
 			return
 		}
 		
@@ -706,14 +583,6 @@ class Collector {
 					if up && running && !loopback {
 						let interfaceData = unsafeBitCast(interfaceAddressData.ifa_data, to: UnsafeMutablePointer<if_data>.self).pointee
 						networkSnapshot.add(receivedPackets: interfaceData.ifi_ipackets, receivedErrors: interfaceData.ifi_ierrors, receivedBytes: interfaceData.ifi_ibytes, sentPackets: interfaceData.ifi_opackets, sentErrors: interfaceData.ifi_oerrors, sentBytes: interfaceData.ifi_obytes)
-						
-						//						let name: String = String(cString: interfaceAddressData.ifa_name)
-						//						let displayFlags = displayNetworkString(for: interfaceAddressData.ifa_flags)
-						//						let outputBytes = interfaceData.ifi_obytes
-						//						let inputBytes = interfaceData.ifi_ibytes
-						//						let outputErrors = interfaceData.ifi_oerrors
-						//						let inputErrors = interfaceData.ifi_ierrors
-						//						collectorLogger.info("NETWORK: \(displayFlags) \(name): inputBytes = \(inputBytes), outputBytes = \(outputBytes), errors = \(inputErrors)/\(outputErrors)")
 					}
 				}
 				interfaceAddress = interfaceAddressData.ifa_next
@@ -790,7 +659,7 @@ class Collector {
 		lastNetworkSnapshot = networkSnapshot
 		
 		let networkSample = NetworkSample(receivedPackets: deltaReceivedPackets, receivedErrors: deltaReceivedErrors, receivedBytes: deltaReceivedBytes, sentPackets: deltaSentPackets, sentErrors: deltaSentErrors, sentBytes: deltaSentBytes)
-		//collectorLogger.info("NETWORK: \(networkSample.description)")
+		//debugLog("NETWORK: \(networkSample.description)")
 		networkSamples.append(networkSample)
 		while networkSamples.count > Self.sampleCount {
 			networkSamples.remove(at: 0)
@@ -856,11 +725,11 @@ class Collector {
 			diskSamples.remove(at: 0)
 		}
 		
-		//collectorLogger.info("DISK: \(diskSample.description, privacy: .public)")
+		//debugLog("DISK: \(diskSample.description, privacy: .public)")
 	}
 	
 	private func collectProcessor() {
-		//collectorLogger.info("CPU: processorCoreInfo = \(processorCoreInfo)")
+		//debugLog("CPU: processorCoreInfo = \(processorCoreInfo)")
 		
 		var processorCount: natural_t = 0
 		var processorInfoArray: processor_info_array_t? = nil
@@ -888,7 +757,7 @@ class Collector {
 			
 			let coreIndex = processorCoreMap[Int(processor)]
 			coreSnapshots[coreIndex].add(systemTicks: systemTicks, userTicks: userTicks, idleTicks: idleTicks, niceTicks: niceTicks)
-			//collectorLogger.info("CPU: \(processor): systemTicks = \(systemTicks), userTicks = \(userTicks), idleTicks = \(idleTicks), niceTicks = \(niceTicks)")
+			//debugLog("CPU: \(processor): systemTicks = \(systemTicks), userTicks = \(userTicks), idleTicks = \(idleTicks), niceTicks = \(niceTicks)")
 		}
 		
 		var coreSamples: [CoreSample] = []
@@ -928,8 +797,8 @@ class Collector {
 //		}
 		
 		// NOTE: The following line of code leaks memory on because it doesn't use bitPattern: https://stackoverflow.com/a/48630296/132867
-		// This took a long time to figure out.
 		//vm_deallocate(mach_task_self_, vm_address_t(processorInfoArray.pointee), vm_size_t(processorInfoCount))
+		// This took a long time to figure out. See also: https://github.com/chockenberry/DaemonTest
 		vm_deallocate(mach_task_self_, vm_address_t(bitPattern: processorInfoArray), vm_size_t(processorInfoCount))
 	}
 	
@@ -939,58 +808,13 @@ class Collector {
 		let oneMinute = samples[0]
 		let fiveMinutes = samples[1]
 		let fifteenMinutes = samples[2]
-		//collectorLogger.info("LOAD: average = \(oneMinute), \(fiveMinutes), \(fifteenMinutes)")
+		//debugLog("LOAD: average = \(oneMinute), \(fiveMinutes), \(fifteenMinutes)")
 
 		let loadSample = LoadSample(oneMinute: oneMinute, fiveMinutes: fiveMinutes, fifteenMinutes: fifteenMinutes)
 		loadSamples.append(loadSample)
 		while loadSamples.count > Self.sampleCount {
 			loadSamples.remove(at: 0)
 		}
-
-	}
-	
-	
-	private func displayDiskString(for flags: UInt32) -> String {
-		let readOnly = 		(flags & UInt32(MNT_RDONLY) != 0 ? "ro" : "  ")
-		//let synchronous =	(flags & UInt32(MNT_SYNCHRONOUS) != 0 ? "sy" : "  ")
-		//let noExec =		(flags & UInt32(MNT_NOEXEC) != 0 ? "nx" : "  ")
-		//let noSuid = 		(flags & UInt32(MNT_NOSUID) != 0 ? "ns" : "  ")
-		let noDev = 		(flags & UInt32(MNT_NODEV) != 0 ? "nd" : "  ")
-		//let union = 		(flags & UInt32(MNT_UNION) != 0 ? "un" : "  ")
-		//let async = 		(flags & UInt32(MNT_ASYNC) != 0 ? "as" : "  ")
-		//let protect	= 		(flags & UInt32(MNT_CPROTECT) != 0 ? "cp" : "  ")
-		//let exported = 		(flags & UInt32(MNT_EXPORTED) != 0 ? "ex" : "  ")
-		let removable = 	(flags & UInt32(MNT_REMOVABLE) != 0 ? "rm" : "  ")
-		//let quarantine = 	(flags & UInt32(MNT_QUARANTINE) != 0 ? "qu" : "  ")
-		
-		//let local = 		(flags & UInt32(MNT_LOCAL) != 0 ? "lo" : "  ")
-		//let quota = 		(flags & UInt32(MNT_QUOTA) != 0 ? "qu" : "  ")
-		let root = 			(flags & UInt32(MNT_ROOTFS) != 0 ? "rt" : "  ")
-		let doVolfs = 		(flags & UInt32(MNT_DOVOLFS) != 0 ? "dv" : "  ")
-		
-		let dontBrowse = 	(flags & UInt32(MNT_DONTBROWSE) != 0 ? "db" : "  ")
-		//let ignoreOwner = 	(flags & UInt32(MNT_IGNORE_OWNERSHIP) != 0 ? "io" : "  ")
-		//let autoMounted = 	(flags & UInt32(MNT_AUTOMOUNTED) != 0 ? "am" : "  ")
-		let journaled = 	(flags & UInt32(MNT_JOURNALED) != 0 ? "jo" : "  ")
-		//let noUserExAttr = 	(flags & UInt32(MNT_NOUSERXATTR) != 0 ? "nu" : "  ")
-		//let deferWrite = 	(flags & UInt32(MNT_DEFWRITE) != 0 ? "dw" : "  ")
-		//let multiLabel = 	(flags & UInt32(MNT_MULTILABEL) != 0 ? "ml" : "  ")
-		//let noFollow = 		(flags & UInt32(MNT_NOFOLLOW) != 0 ? "nf" : "  ")
-		let noAccessTime = 	(flags & UInt32(MNT_NOATIME) != 0 ? "na" : "  ")
-		let snapshot = 		(flags & UInt32(MNT_SNAPSHOT) != 0 ? "ss" : "  ")
-		//let strictTime = 	(flags & UInt32(MNT_STRICTATIME) != 0 ? "st" : "  ")
-		//let unknownPerm = 	(flags & UInt32(MNT_UNKNOWNPERMISSIONS) != 0 ? "uk" : "  ")
-		
-		//let update = 		(flags & UInt32(MNT_UPDATE) != 0 ? "up" : "  ")
-		//let noBlock = 		(flags & UInt32(MNT_NOBLOCK) != 0 ? "nb" : "  ")
-		//let reload = 		(flags & UInt32(MNT_RELOAD) != 0 ? "rl" : "  ")
-		//let force = 		(flags & UInt32(MNT_FORCE) != 0 ? "fo" : "  ")
-		
-		//		return("\(synchronous) \(noExec) \(noSuid) \(noDev) \(union) \(async) \(protect) \(exported) \(removable) \(quarantine)")
-		//		return("\(readOnly)\(local)\(dontBrowse)\(ignoreOwner)\(autoMounted)\(journaled)\(noUserExAttr)\(deferWrite)\(multiLabel)")
-		//		return("\(readOnly)\(noFollow)\(noAccessTime)\(snapshot)\(strictTime)\(unknownPerm)")
-		//		return("\(readOnly)\(update)\(noBlock)\(reload)\(force)")
-		return("\(readOnly)|\(root)|\(dontBrowse)|\(noDev)|\(removable)|\(doVolfs)|\(journaled)|\(noAccessTime)|\(snapshot)")
 	}
 	
 	private func collectVolumes() {
@@ -1011,15 +835,8 @@ class Collector {
 					let blockSize = mountData.f_bsize
 					let totalBlocks = mountData.f_blocks
 					let availableBlocks = mountData.f_bavail
-					
-					//					let toName = String.fromTuple(tuple: mountData.f_mntonname) ?? "N/A"
-					//					let type = String.fromTuple(tuple: mountData.f_fstypename) ?? "N/A"
-					//					let typeNumber = mountData.f_type
-					//					let owner = mountData.f_owner
-					//					let totalSize = totalBlocks *  UInt64(blockSize)
-					//					let freeSize = availableBlocks *  UInt64(blockSize)
-					//					let displayFlags = displayDiskString(for: flags)
-					
+
+#if os(iOS)
 					let volumeName: String
 					if rootFilesystem {
 						volumeName = "Device"
@@ -1038,14 +855,31 @@ class Collector {
 							volumeName = "Other"
 						}
 					}
-					
+#else
+					let volumeName: String
+					if rootFilesystem {
+						volumeName = "Boot"
+					}
+					else {
+						if removableDevice && !readOnly {
+							let toName = String.fromTuple(tuple: mountData.f_mntonname) ?? "N/A"
+							let components = toName.components(separatedBy: "/")
+							if let lastPathComponent = components.last {
+								volumeName = lastPathComponent
+							}
+							else {
+								volumeName = "Storage"
+							}
+						}
+						else {
+							volumeName = "Other"
+						}
+					}
+#endif
 					let volumeSample = VolumeSample(totalBlocks: totalBlocks, availableBlocks: availableBlocks, blockSize: blockSize, name: volumeName)
-					//collectorLogger.info("VOLUME: \(volumeSample.description)")
+					//debugLog("VOLUME: \(volumeSample.description)")
 					
 					volumeSamples.append(volumeSample)
-					//					let free = ByteCountFormatter.string(fromByteCount: Int64(freeSize), countStyle: .file)
-					//					let total = ByteCountFormatter.string(fromByteCount: Int64(totalSize), countStyle: .file)
-					//					collectorLogger.info("VOLUME: \(displayFlags), type = \(type) [\(typeNumber)]\t'\(volumeName)' \(free) of \(total)")
 				}
 			}
 		}
@@ -1058,17 +892,19 @@ class Collector {
 	}
 	
 	private func collectGraphics() {
+#if os(macOS)
 		var percentage = Double(0)
 		var memorySize = UInt64(0)
 		queryGraphicsUtilization(&percentage, &memorySize)
 		let deviceUtilization = percentage / 100.0
 		let graphicsSample = GraphicsSample(deviceUtilization: deviceUtilization, memorySize: memorySize)
-		//collectorLogger.info("GRAPHICS: \(graphicsSample.description)")
+		//debugLog("GRAPHICS: \(graphicsSample.description)")
 		
 		graphicsSamples.append(graphicsSample)
 		while graphicsSamples.count > Self.sampleCount {
 			graphicsSamples.remove(at: 0)
 		}
+#endif
 	}
 	
 }

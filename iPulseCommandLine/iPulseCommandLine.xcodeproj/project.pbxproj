@@ -89,9 +89,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		44314D432B8A91DF00BC4914 /* iPulseCommandLine */ = {
+		44314D432B8A91DF00BC4914 /* ipulsed */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 44314D4B2B8A91DF00BC4914 /* Build configuration list for PBXNativeTarget "iPulseCommandLine" */;
+			buildConfigurationList = 44314D4B2B8A91DF00BC4914 /* Build configuration list for PBXNativeTarget "ipulsed" */;
 			buildPhases = (
 				44314D402B8A91DF00BC4914 /* Sources */,
 				44314D412B8A91DF00BC4914 /* Frameworks */,
@@ -101,7 +101,7 @@
 			);
 			dependencies = (
 			);
-			name = iPulseCommandLine;
+			name = ipulsed;
 			productName = iPulseCommandLine;
 			productReference = 44314D442B8A91DF00BC4914 /* ipulsed */;
 			productType = "com.apple.product-type.tool";
@@ -135,7 +135,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				44314D432B8A91DF00BC4914 /* iPulseCommandLine */,
+				44314D432B8A91DF00BC4914 /* ipulsed */,
 			);
 		};
 /* End PBXProject section */
@@ -284,7 +284,7 @@
 				DEVELOPMENT_TEAM = RYQWBTQRPT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_NAME = ipulsed;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "iPulseCommandLine/iPulseCommandLine-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -299,7 +299,7 @@
 				DEVELOPMENT_TEAM = RYQWBTQRPT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_NAME = ipulsed;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "iPulseCommandLine/iPulseCommandLine-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
@@ -317,7 +317,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		44314D4B2B8A91DF00BC4914 /* Build configuration list for PBXNativeTarget "iPulseCommandLine" */ = {
+		44314D4B2B8A91DF00BC4914 /* Build configuration list for PBXNativeTarget "ipulsed" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				44314D4C2B8A91DF00BC4914 /* Debug */,
