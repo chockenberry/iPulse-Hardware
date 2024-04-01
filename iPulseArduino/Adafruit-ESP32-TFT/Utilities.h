@@ -4,12 +4,12 @@
 #define _Utilities_H_
 
 void percentageLabel(float value, char *label) {
-  snprintf(label, 5, "%4d", (int16_t)(value * 100.0));
+  snprintf(label, 5, "%d", (int16_t)(value * 100.0));
 }
 
 void bitsPerSecondLabel(int64_t value, char *label, char *units) {
   if (value == 0) {
-    strcpy(label, "   -");
+    strcpy(label, "-");
     strcpy(units, "bps");
   }
   else {
@@ -45,13 +45,13 @@ void bitsPerSecondLabel(int64_t value, char *label, char *units) {
     }
 
     float scaling = powf(10, scalingPower);
-    snprintf(label, 5, "%4.*f", decimalPlaces, ((float)value / scaling));
+    snprintf(label, 5, "%.*f", decimalPlaces, ((float)value / scaling));
   }
 }
 
 void bytesPerSecondLabel(int64_t value, char *label, char *units) {
   if (value == 0) {
-    strcpy(label, "   -");
+    strcpy(label, "-");
     strcpy(units, "B/s");
   }
   else {
@@ -87,13 +87,13 @@ void bytesPerSecondLabel(int64_t value, char *label, char *units) {
     }
 
     float scaling = powf(2, scalingPower);
-    snprintf(label, 5, "%4.*f", decimalPlaces, ((float)value / scaling));
+    snprintf(label, 5, "%.*f", decimalPlaces, ((float)value / scaling));
   }
 }
 
 void bytesLabel(int64_t value, char *label, char *units) {
   if (value == 0) {
-    strcpy(label, "   -");
+    strcpy(label, "-");
     strcpy(units, "B");
   }
   else {
@@ -129,13 +129,13 @@ void bytesLabel(int64_t value, char *label, char *units) {
     }
 
     float scaling = powf(2, scalingPower);
-    snprintf(label, 5, "%4.*f", decimalPlaces, ((float)value / scaling));
+    snprintf(label, 5, "%.*f", decimalPlaces, ((float)value / scaling));
   }
 }
 
 void bytes10Label(int64_t value, char *label, char *units) {
   if (value == 0) {
-    strcpy(label, "   -");
+    strcpy(label, "-");
     strcpy(units, "B");
   }
   else {
@@ -166,7 +166,7 @@ void bytes10Label(int64_t value, char *label, char *units) {
     }
 
     float scaling = powf(10, scalingPower);
-    snprintf(label, 5, "%4.0f", ((float)value / scaling));
+    snprintf(label, 5, "%.0f", ((float)value / scaling));
   }
 }
 

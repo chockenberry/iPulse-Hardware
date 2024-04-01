@@ -13,6 +13,10 @@
 #include "Data.h"
 #include "Display.h"
 
+//#include "Monaco-2x.h"
+#include "Geneva-2x.h"
+//#include "EspySans-9pt2x.h"
+
 #define BUTTON_A 0
 #define BUTTON_B 1
 #define BUTTON_C 2
@@ -25,6 +29,9 @@ Data data;              // data from the JSON document
 //Adafruit_SH1107 display = Adafruit_SH1107(64, 128, &Wire);  // the OLED display
 Adafruit_ST7789 display = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST); // the TFT display
 GFXcanvas16 canvas(240, 135);
+
+// set to true when data is received from serial port and ready to display
+bool needsUpdate = false;
 
 void configurePins() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -48,7 +55,7 @@ void setup() {
 #endif
 
   delay(100);  // wait for the TFT to power up
-  configureDisplay(display, canvas);
+  configureDisplay(display, font, canvas);
   configurePins();
 
   setDimmed(true);
@@ -59,6 +66,8 @@ void setup() {
 #if DEBUG
   Serial.println("setup done");
 #endif
+  needsUpdate = true;
+
 }
 
 // built-in LED lights up for 1/10 of a second each time data is received over the serial port (once per second)
@@ -72,8 +81,6 @@ unsigned long previousSleepMillis = 0;
 // set to true when data is first received from serial port
 bool hasFirstUpdate = false;
 
-// set to true when data is received from serial port and ready to display
-bool needsUpdate = false;
 
 // debounced button states
 unsigned long debounceDelay = 100;
