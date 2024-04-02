@@ -60,7 +60,7 @@ void setup() {
 
   setDimmed(true);
   setHeartbeat(false);
-  displayStart(display, canvas);
+  renderStart(canvas);
   display.drawRGBBitmap(0, 0, canvas.getBuffer(), 240, 135);
 
 #if DEBUG
@@ -153,9 +153,9 @@ void loop() {
 
   if (needsUpdate) {
     if (displayingActivity) {
-      displayActivity(display, canvas, &data);
+      renderActivity(canvas, &data);
     } else {
-      displayDisks(display, canvas, &data);
+      renderDisks(canvas, &data);
     }
     display.drawRGBBitmap(0, 0, canvas.getBuffer(), 240, 135);
 
@@ -176,7 +176,7 @@ void loop() {
     // update sleep mode, if necessary
     if (hasFirstUpdate) {
       if (currentMillis - previousSleepMillis > sleepInterval) {
-        displaySleep(display, canvas);
+        renderSleep(canvas);
         display.drawRGBBitmap(0, 0, canvas.getBuffer(), 240, 135);
         previousSleepMillis = currentMillis;
       }
@@ -187,6 +187,7 @@ void loop() {
 bool isDimmed = true;
 void setDimmed(bool flag) {
   isDimmed = flag;
+  // Need to use PWM to cycle power to the TFT backlight: https://forums.adafruit.com/viewtopic.php?t=174096
   //display.setContrast(isDimmed ? 0 : 255);
 }
 void toggleDimmed() {
