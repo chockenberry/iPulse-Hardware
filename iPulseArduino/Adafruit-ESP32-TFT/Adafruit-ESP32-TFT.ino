@@ -13,9 +13,9 @@
 #include "Data.h"
 #include "Display.h"
 
-//#include "Monaco-2x.h"
 #include "Geneva-2x.h"
 //#include "EspySans-9pt2x.h"
+//#include "Monaco-2x.h"
 
 #define BUTTON_A 0
 #define BUTTON_B 1

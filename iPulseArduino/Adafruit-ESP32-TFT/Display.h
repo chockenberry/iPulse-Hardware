@@ -11,11 +11,13 @@
 
 const int16_t barWidth = 240;
 const int16_t diskWidth = 120;
-const int16_t spacer = 3;
+const int16_t spacer = 4;
 const int16_t characterWidth = 10;
 const int16_t characterHeight = 18;
 const int16_t characterSpacer = 1;
 const int16_t bitmapDimension = 7;
+const int16_t inset = 60;
+const int16_t ascenderOffset = 3;
 
 void configureDisplay(Adafruit_ST7789 &display, const GFXfont &font, GFXcanvas16 &canvas) {
   display.init(135, 240);  // Init ST7789 240x135
@@ -42,12 +44,65 @@ void renderGraph(GFXcanvas16 &canvas, uint16_t color, const char *label, const c
   canvas.fillRect(x, y, width, graphHeight, color);
   canvas.fillTriangle(width, y, width + (graphHeight / 2), y + (graphHeight / 2), width, y + graphHeight - 1, color);
 
-  const int16_t inset = 100;
-  const int16_t ascenderOffset = 3;
+  int16_t labelX = 0;
+  int16_t labelY = 0;
+  uint16_t labelWidth = 0;
+  uint16_t labelHeight = 0;
+  canvas.getTextBounds(label, 0, 0, &labelX, &labelY, &labelWidth, &labelHeight);
 
-  canvas.setCursor(x + barWidth - inset, y + characterHeight - ascenderOffset);
+  canvas.setCursor(x + barWidth - inset - spacer - labelWidth, y + characterHeight - ascenderOffset);
   canvas.print(label);
-  canvas.setCursor(x + barWidth - inset + ((characterWidth + characterSpacer) * 4) + spacer, y + characterHeight - ascenderOffset);
+  canvas.setCursor(x + barWidth - inset + spacer, y + characterHeight - ascenderOffset);
+  canvas.print(units);
+}
+
+void renderMemory(GFXcanvas16 &canvas, uint16_t wiredColor, uint16_t appColor, uint16_t compressedColor, const char *label, const char *units, int16_t x, int16_t y, float wiredValue, float appValue, float compressedValue) {
+  if (wiredValue < 0.0) {
+    wiredValue = 0.0;
+  } else if (wiredValue > 1.0) {
+    wiredValue = 1.0;
+  }
+
+  if (appValue < 0.0) {
+    appValue = 0.0;
+  } else if (appValue > 1.0) {
+    appValue = 1.0;
+  }
+
+  if (compressedValue < 0.0) {
+    compressedValue = 0.0;
+  } else if (compressedValue > 1.0) {
+    compressedValue = 1.0;
+  }
+
+  const int16_t graphHeight = 19;
+
+  int16_t start = x;
+  {
+    const int16_t width = barWidth * wiredValue;
+    canvas.fillRect(start, y, width, graphHeight, wiredColor);
+    start += width;
+  }
+  {
+    const int16_t width = barWidth * appValue;
+    canvas.fillRect(start, y, width, graphHeight, appColor);
+    start += width;
+  }
+  {
+    const int16_t width = barWidth * compressedValue;
+    canvas.fillRect(barWidth - width, y, width, graphHeight, compressedColor);
+  }
+
+
+  int16_t labelX = 0;
+  int16_t labelY = 0;
+  uint16_t labelWidth = 0;
+  uint16_t labelHeight = 0;
+  canvas.getTextBounds(label, 0, 0, &labelX, &labelY, &labelWidth, &labelHeight);
+
+  canvas.setCursor(x + barWidth - inset - spacer - labelWidth, y + characterHeight - ascenderOffset);
+  canvas.print(label);
+  canvas.setCursor(x + barWidth - inset + spacer, y + characterHeight - ascenderOffset);
   canvas.print(units);
 }
 
@@ -107,11 +162,14 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
 #define READ_COLOR CONVERT_COLOR(0xf06b00)
 #define WRITE_COLOR CONVERT_COLOR(0xffae00)
 
-#define MEMORY_SYSTEM_COLOR CONVERT_COLOR(0x68fcea)
-#define MEMORY_APP_COLOR CONVERT_COLOR(0x1ac8e8)
-#define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0xcf72fe)
+// #define MEMORY_WIRED_COLOR CONVERT_COLOR(0x68fcea)
+// #define MEMORY_APP_COLOR CONVERT_COLOR(0x1ac8e8)
+// #define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0xcf72fe)
+#define MEMORY_WIRED_COLOR CONVERT_COLOR(0x0b81ad)
+#define MEMORY_APP_COLOR CONVERT_COLOR(0x005c94)
+#define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0x791da8)
 
-#define BACKGROUND_COLOR CONVERT_COLOR(0x333333)
+#define BACKGROUND_COLOR CONVERT_COLOR(0x444444)
 
 #if 0
   canvas.fillScreen(ST77XX_BLACK);
@@ -121,7 +179,10 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
   renderGraph(canvas, UPLOAD_COLOR, uploadLabel, uploadUnits, indent, start + (stride * 2), 1.0);
   renderGraph(canvas, READ_COLOR, readLabel, readUnits, indent, start + (stride * 3), 1.0);
   renderGraph(canvas, WRITE_COLOR, writeLabel, writeUnits, indent, start + (stride * 4), 0.9);
-  renderGraph(canvas, MEMORY_COMPRESSED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5), 0.8);
+
+  //renderGraph(canvas, MEMORY_COMPRESSED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5), 0.8);
+  renderMemory(canvas, MEMORY_WIRED_COLOR, MEMORY_APP_COLOR, MEMORY_COMPRESSED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5),
+      0.2, 0.4, 0.3);
 #else
   canvas.fillScreen(ST77XX_BLACK);
 
@@ -130,34 +191,36 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
   renderGraph(canvas, UPLOAD_COLOR, uploadLabel, uploadUnits, indent, start + (stride * 2), (float)(data->networkSentBps) / networkScale);
   renderGraph(canvas, READ_COLOR, readLabel, readUnits, indent, start + (stride * 3), (float)(data->diskReadBytes) / diskScale);
   renderGraph(canvas, WRITE_COLOR, writeLabel, writeUnits, indent, start + (stride * 4), (float)(data->diskWriteBytes) / diskScale);
-  renderGraph(canvas, MEMORY_COMPRESSED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5), (float)memoryTotalBytes / (float)data->memoryPhysicalSize);
+
+  //renderGraph(canvas, MEMORY_WIRED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5), (float)memoryTotalBytes / (float)data->memoryPhysicalSize);
+  renderMemory(canvas, MEMORY_WIRED_COLOR, MEMORY_APP_COLOR, MEMORY_COMPRESSED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5),
+      (float)data->memoryWiredSize / (float)data->memoryPhysicalSize, (float)data->memoryAppSize / (float)data->memoryPhysicalSize, (float)data->memoryCompressedSize / (float)data->memoryPhysicalSize);
 #endif
 
   int64_t bottomHeight = 135 - 5;
 
   canvas.fillRect(0, 135 - 21, 240, 21, BACKGROUND_COLOR);
 
-  canvas.setCursor(indent, bottomHeight);
   int uptimeDecimalPlaces = 1;
   float daysUptime = (float)data->uptime / 60.0 / 60.0 / 24.0;
-  if (daysUptime > 99.9) {
-    uptimeDecimalPlaces = 0;
-  }
-  char uptimeLabel[5];
-  snprintf(uptimeLabel, sizeof(uptimeLabel), "%4.*f", uptimeDecimalPlaces, daysUptime);
-  canvas.print(uptimeLabel);
-  canvas.setCursor(indent + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
-  canvas.print("days");
+  char uptimeLabel[16];
+  snprintf(uptimeLabel, sizeof(uptimeLabel), "%.1f days", daysUptime);
 
-  canvas.setCursor(indent + 120, bottomHeight);
-  int loadDecimalPlaces = 1;
-  if (data->load > 99.9) {
-    loadDecimalPlaces = 0;
-  }
-  char loadLabel[5];
-  snprintf(loadLabel, sizeof(loadLabel), "%4.*f", loadDecimalPlaces, data->load);
+  canvas.setCursor(indent + spacer, bottomHeight);
+  canvas.print(uptimeLabel);
+
+  char loadLabel[10];
+  snprintf(loadLabel, sizeof(loadLabel), "%.1f", data->load);
+
+  int16_t labelX = 0;
+  int16_t labelY = 0;
+  uint16_t labelWidth = 0;
+  uint16_t labelHeight = 0;
+  canvas.getTextBounds(loadLabel, 0, 0, &labelX, &labelY, &labelWidth, &labelHeight);
+
+  canvas.setCursor(indent + barWidth - inset - spacer - labelWidth, bottomHeight);
   canvas.print(loadLabel);
-  canvas.setCursor(indent + 120 + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
+  canvas.setCursor(indent + barWidth - inset + spacer, bottomHeight);
   canvas.print("load");
 }
 
