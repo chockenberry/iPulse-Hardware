@@ -44,7 +44,7 @@ const int16_t ascenderOffset = 3;
 // display disk mode: 0 = bytes used, 1 = percentage used, 2 = bytes free, 3 = percentage free
 int displayDiskMode = 0;
 
-  // display activity mode: 0 = 10 Mbps & 1 MB/s, 1 = 100 Mbps & 10 MB/s, 2 = 1 Gbps & 100 MB/s
+  // display activity mode: 0 = 10 Mbps & 1 MB/s, 1 = 100 Mbps & 10 MB/s, 2 = 1 Gbps & 100 MB/s, 3 = 2 Gbps & 200 MB/s
 int displayActivityMode = 0;
 
 void configureDisplay(Adafruit_ST7789 &display, const GFXfont &font, GFXcanvas16 &canvas) {
@@ -147,7 +147,6 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
 
   canvas.fillScreen(ST77XX_BLUE);
 
-  // display activity mode: 0 = 10 Mbps & 1 MB/s, 1 = 100 Mbps & 10 MB/s, 2 = 1 Gbps & 100 MB/s
   float networkScale = 0.0;
   float diskScale = 0.0;
   switch (displayActivityMode) {
@@ -163,6 +162,10 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
     case 2:
       networkScale = 1000.0 * 1000.0 * 1000.0;  // 1 Gbps
       diskScale = 100.0 * 1024.0 * 1024.0;      // 100 MB/s
+      break;
+    case 3:
+      networkScale = 2000.0 * 1000.0 * 1000.0;  // 2 Gbps
+      diskScale = 200.0 * 1024.0 * 1024.0;      // 200 MB/s
       break;
   }
 
