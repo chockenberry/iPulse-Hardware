@@ -3,9 +3,22 @@
 #ifndef _Utilities_H_
 #define _Utilities_H_
 
-void percentageLabel(float value, char *label) {
-  snprintf(label, 5, "%d", (int16_t)(value * 100.0));
+float clampedValue(float value) {
+  if (value < 0.0) {
+    value = 0.0;
+  } else if (value > 1.0) {
+    value = 1.0;
+  }
+  return value;
 }
+
+void percentageLabel(float value, int decimalPlaces, char *label) {
+  if (value > 0.99) {
+    decimalPlaces = 0;
+  }
+
+  snprintf(label, 5, "%.*f", decimalPlaces, value * 100.0);
+ }
 
 void bitsPerSecondLabel(int64_t value, char *label, char *units) {
   if (value == 0) {
@@ -143,6 +156,7 @@ void bytes10Label(int64_t value, char *label, char *units) {
 
     char *suffix = 0;
     float scalingPower = 0.0;
+    int decimalPlaces = 0;
 
     if (maxScale >= 0 && maxScale < 3) {
       // 0 .. 1000
@@ -159,14 +173,20 @@ void bytes10Label(int64_t value, char *label, char *units) {
       strcpy(units, "MB");
       scalingPower = 6;
     }
-    else {
+    else if (maxScale >= 9 && maxScale < 12) {
       // over 1,000,000,000
       strcpy(units, "GB");
       scalingPower = 9;
     }
+    else {
+      // over 1,000,000,000,000
+      strcpy(units, "TB");
+      scalingPower = 12;
+      decimalPlaces = 1;
+    }
 
     float scaling = powf(10, scalingPower);
-    snprintf(label, 5, "%.0f", ((float)value / scaling));
+    snprintf(label, 5, "%.*f", decimalPlaces, ((float)value / scaling));
   }
 }
 

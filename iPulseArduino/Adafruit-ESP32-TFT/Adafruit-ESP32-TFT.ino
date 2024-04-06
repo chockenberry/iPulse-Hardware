@@ -33,6 +33,9 @@ GFXcanvas16 canvas(240, 135);
 // set to true when data is received from serial port and ready to display
 bool needsUpdate = false;
 
+// displaying cpu/network/disk/memory activity or disk capacities
+bool displayingActivity = true;
+
 void configurePins() {
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -66,8 +69,9 @@ void setup() {
 #if DEBUG
   Serial.println("setup done");
 #endif
-  needsUpdate = true;
-
+  // turn these on for easier debugging
+  //needsUpdate = true;
+  //displayingActivity = false;
 }
 
 // built-in LED lights up for 1/10 of a second each time data is received over the serial port (once per second)
@@ -91,8 +95,6 @@ bool pressedButtonA = false;
 bool pressedButtonB = false;
 bool pressedButtonC = false;
 
-// displaying activity or disk levels
-bool displayingActivity = true;
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -131,6 +133,32 @@ void loop() {
       pressedButtonA = false;
     }
     previousButtonAMillis = 0;
+  }
+
+  if (!digitalRead(BUTTON_B)) {
+    if (previousButtonBMillis == 0) {
+      previousButtonBMillis = currentMillis;
+    } else if (currentMillis - previousButtonBMillis > debounceDelay) {
+      pressedButtonB = true;
+    }
+  } else {
+    if (pressedButtonB) {
+      if (displayingActivity) {
+        displayActivityMode += 1;
+        if (displayActivityMode > 3) {
+          displayActivityMode = 0;
+        }
+      }
+      else {
+        displayDiskMode += 1;
+        if (displayDiskMode > 3) {
+          displayDiskMode = 0;
+        }
+      }
+      needsUpdate = true;
+      pressedButtonB = false;
+    }
+    previousButtonBMillis = 0;
   }
 
   if (!digitalRead(BUTTON_C)) {

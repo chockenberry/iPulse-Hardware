@@ -9,8 +9,30 @@
 #ifndef _Display_H_
 #define _Display_H_
 
+// convert color 24-bit color (RRRRRRRR GGGGGGGG BBBBBBBB) to 16-bit color (RRRRR GGGGGGG RRRRR)
+#define CONVERT_COLOR(color) ((int)((((color & 0xff0000) >> 16) / 255.0) * 31) << 11) | ((int)((((color & 0x00ff00) >> 8) / 255.0) * 63) << 5) | ((int)((((color & 0x0000ff) >> 0) / 255.0) * 31) << 0)
+
+#define PROCESSOR_COLOR CONVERT_COLOR(0x097ddb)
+#define UPLOAD_COLOR CONVERT_COLOR(0x00a802)
+#define DOWNLOAD_COLOR CONVERT_COLOR(0xfc3c28)
+#define READ_COLOR CONVERT_COLOR(0xf06b00)
+#define WRITE_COLOR CONVERT_COLOR(0xffae00)
+#define STORAGE_EVEN_COLOR CONVERT_COLOR(0xfb5c6b)
+#define STORAGE_ODD_COLOR CONVERT_COLOR(0xe8137a)
+
+// #define MEMORY_WIRED_COLOR CONVERT_COLOR(0x68fcea)
+// #define MEMORY_APP_COLOR CONVERT_COLOR(0x1ac8e8)
+// #define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0xcf72fe)
+#define MEMORY_WIRED_COLOR CONVERT_COLOR(0x0b81ad)
+#define MEMORY_APP_COLOR CONVERT_COLOR(0x005c94)
+#define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0x791da8)
+
+//#define BACKGROUND_COLOR CONVERT_COLOR(0x444444)
+#define BACKGROUND_COLOR CONVERT_COLOR(0x241b52)
+#define FILL_COLOR CONVERT_COLOR(0x241b52)
+
 const int16_t barWidth = 240;
-const int16_t diskWidth = 120;
+const int16_t diskWidth = 150;
 const int16_t spacer = 4;
 const int16_t characterWidth = 10;
 const int16_t characterHeight = 18;
@@ -18,6 +40,12 @@ const int16_t characterSpacer = 1;
 const int16_t bitmapDimension = 7;
 const int16_t inset = 60;
 const int16_t ascenderOffset = 3;
+
+// display disk mode: 0 = bytes used, 1 = percentage used, 2 = bytes free, 3 = percentage free
+int displayDiskMode = 0;
+
+// display activity mode: 0 = 1 Mbps & 10 MB/s, 1 = 10 Mbps & 100 MB/s, 2 = 100 Mbps & 1 GB/s
+int displayActivityMode = 0;
 
 void configureDisplay(Adafruit_ST7789 &display, const GFXfont &font, GFXcanvas16 &canvas) {
   display.init(135, 240);  // Init ST7789 240x135
@@ -32,11 +60,7 @@ void configureDisplay(Adafruit_ST7789 &display, const GFXfont &font, GFXcanvas16
 }
 
 void renderGraph(GFXcanvas16 &canvas, uint16_t color, const char *label, const char *units, int16_t x, int16_t y, float value) {
-  if (value < 0.0) {
-    value = 0.0;
-  } else if (value > 1.0) {
-    value = 1.0;
-  }
+  value = clampedValue(value);
 
   const int16_t graphHeight = 19;
 
@@ -57,23 +81,9 @@ void renderGraph(GFXcanvas16 &canvas, uint16_t color, const char *label, const c
 }
 
 void renderMemory(GFXcanvas16 &canvas, uint16_t wiredColor, uint16_t appColor, uint16_t compressedColor, const char *label, const char *units, int16_t x, int16_t y, float wiredValue, float appValue, float compressedValue) {
-  if (wiredValue < 0.0) {
-    wiredValue = 0.0;
-  } else if (wiredValue > 1.0) {
-    wiredValue = 1.0;
-  }
-
-  if (appValue < 0.0) {
-    appValue = 0.0;
-  } else if (appValue > 1.0) {
-    appValue = 1.0;
-  }
-
-  if (compressedValue < 0.0) {
-    compressedValue = 0.0;
-  } else if (compressedValue > 1.0) {
-    compressedValue = 1.0;
-  }
+  wiredValue = clampedValue(wiredValue);
+  appValue = clampedValue(appValue);
+  compressedValue = clampedValue(compressedValue);
 
   const int16_t graphHeight = 19;
 
@@ -112,7 +122,7 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
   const int16_t indent = 0;
 
   char cpuLabel[5];
-  percentageLabel(data->cpuUsage, cpuLabel);
+  percentageLabel(data->cpuUsage, 1, cpuLabel);
 
   char downloadLabel[5];
   char downloadUnits[5];
@@ -137,39 +147,24 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
 
   canvas.fillScreen(ST77XX_BLUE);
 
-  // TODO: These should be configurable somehow...
-  const float networkScale = 1.0 * 1000.0 * 1000.0;  // 1 Mbps
-  const float diskScale = 10.0 * 1024.0 * 1024.0;    // 10 MB/s
-
-  /*
-#define ST77XX_BLACK 0x0000
-#define ST77XX_WHITE 0xFFFF
-#define ST77XX_RED 0xF800
-#define ST77XX_GREEN 0x07E0
-#define ST77XX_BLUE 0x001F
-#define ST77XX_CYAN 0x07FF
-#define ST77XX_MAGENTA 0xF81F
-#define ST77XX_YELLOW 0xFFE0
-#define ST77XX_ORANGE 0xFC00
-*/
-
-// convert color RRRRRRRR GGGGGGGG BBBBBBBB (24-bit) to RRRRR GGGGGGG RRRRR (16-bit)
-#define CONVERT_COLOR(color) ((int)((((color & 0xff0000) >> 16) / 255.0) * 31) << 11) | ((int)((((color & 0x00ff00) >> 8) / 255.0) * 63) << 5) | ((int)((((color & 0x0000ff) >> 0) / 255.0) * 31) << 0)
-
-#define PROCESSOR_COLOR CONVERT_COLOR(0x097ddb)
-#define UPLOAD_COLOR CONVERT_COLOR(0x00a802)
-#define DOWNLOAD_COLOR CONVERT_COLOR(0xfc3c28)
-#define READ_COLOR CONVERT_COLOR(0xf06b00)
-#define WRITE_COLOR CONVERT_COLOR(0xffae00)
-
-// #define MEMORY_WIRED_COLOR CONVERT_COLOR(0x68fcea)
-// #define MEMORY_APP_COLOR CONVERT_COLOR(0x1ac8e8)
-// #define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0xcf72fe)
-#define MEMORY_WIRED_COLOR CONVERT_COLOR(0x0b81ad)
-#define MEMORY_APP_COLOR CONVERT_COLOR(0x005c94)
-#define MEMORY_COMPRESSED_COLOR CONVERT_COLOR(0x791da8)
-
-#define BACKGROUND_COLOR CONVERT_COLOR(0x444444)
+  // display activity mode: 0 = 1 Mbps & 10 MB/s, 1 = 10 Mbps & 100 MB/s, 2 = 100 Mbps & 1 GB/s
+  float networkScale = 0.0;
+  float diskScale = 0.0;
+  switch (displayActivityMode) {
+    default:
+    case 0:
+      networkScale = 1.0 * 1000.0 * 1000.0;  // 1 Mbps
+      diskScale = 10.0 * 1024.0 * 1024.0;    // 10 MB/s
+      break;
+    case 1:
+      networkScale = 10.0 * 1000.0 * 1000.0;  // 10 Mbps
+      diskScale = 100.0 * 1024.0 * 1024.0;    // 100 MB/s
+      break;
+    case 2:
+      networkScale = 100.0 * 1000.0 * 1000.0;  // 100 Mbps
+      diskScale = 1024.0 * 1024.0 * 1024.0;    // 1 GB/s
+      break;
+  }
 
 #if 0
   canvas.fillScreen(ST77XX_BLACK);
@@ -224,35 +219,45 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
   canvas.print("load");
 }
 
-void renderDisk(GFXcanvas16 &canvas, const char *name, const char *label, const char *units, int16_t x, int16_t y, float value) {
-  if (value < 0.0) {
-    value = 0.0;
-  } else if (value > 1.0) {
-    value = 1.0;
-  }
+void renderDisk(GFXcanvas16 &canvas, uint16_t color, const char *name, const char *label, const char *units, int16_t x, int16_t y, float value) {
+  value = clampedValue(value);
 
-  canvas.fillRoundRect(x, y, diskWidth * value, 7, 2, ST77XX_WHITE);
+  //canvas.fillRoundRect(x, y, diskWidth * value, 7, 2, ST77XX_WHITE);
 
-  canvas.setCursor(x + diskWidth + spacer, y);
+  const int16_t graphHeight = 19;
+
+  const int16_t width = diskWidth * value;
+  canvas.fillRect(x, y, width, graphHeight, color);
+
+  int16_t labelX = 0;
+  int16_t labelY = 0;
+  uint16_t labelWidth = 0;
+  uint16_t labelHeight = 0;
+  canvas.getTextBounds(label, 0, 0, &labelX, &labelY, &labelWidth, &labelHeight);
+
+  canvas.setCursor(x + barWidth - (inset / 2) - spacer - labelWidth, y + characterHeight - ascenderOffset);
   canvas.print(label);
-  canvas.setCursor(x + diskWidth + spacer + ((characterWidth + characterSpacer) * 4) + spacer, y);
+  canvas.setCursor(x + barWidth - (inset / 2) + spacer, y + characterHeight - ascenderOffset);
   canvas.print(units);
 
-  canvas.setCursor(x + diskWidth + spacer + ((characterWidth + characterSpacer) * 4) + spacer + ((characterWidth + characterSpacer) * 2) + (spacer * 2), y);
+  // canvas.setCursor(x + diskWidth - inset - spacer - labelWidth, y + characterHeight - ascenderOffset);
+  // canvas.print(label);
+  // canvas.setCursor(x + diskWidth - inset + spacer, y + characterHeight - ascenderOffset);
+  // canvas.print(units);
+
+  canvas.setCursor(x + spacer, y + characterHeight - ascenderOffset);
   canvas.print(name);
 }
 
 void renderDisks(GFXcanvas16 &canvas, DataPtr data) {
-  int16_t stride = 18;
-  int16_t start = 0;
-  int16_t indent = 0;
+  const int16_t stride = 19;
+  const int16_t start = 0;
+  const int16_t indent = 0;
 
   canvas.fillScreen(ST77XX_BLACK);
 
-  // TODO: These should be configurable somehow...
-  const float networkScale = 1.0 * 1000.0 * 1000.0;  // 1 Mbps
-  const float diskScale = 10.0 * 1024.0 * 1024.0;    // 10 MB/s
 
+#if 1
   for (int i = 0; i < volumeCount; i++) {
     Volume volume = data->volumes[i];
     if (volume.inUse) {
@@ -260,60 +265,93 @@ void renderDisks(GFXcanvas16 &canvas, DataPtr data) {
       snprintf(diskLabel, volumeNameLength + 1, data->volumes[i].name);
 
       int64_t totalBytes = data->volumes[i].totalBytes;
-      int64_t usedBytes = totalBytes - data->volumes[i].availableBytes;
+      int64_t freeBytes = data->volumes[i].availableBytes;
+      int64_t usedBytes = totalBytes - freeBytes;
       char sizeLabel[5];
       char sizeUnits[5];
-      bytes10Label(usedBytes, sizeLabel, sizeUnits);
+      switch (displayDiskMode) {
+        default:
+        case 0: // bytes used
+          bytes10Label(usedBytes, sizeLabel, sizeUnits);
+          break;
+        case 1: // percentage used
+          percentageLabel(((float)usedBytes / (float)totalBytes), 0, sizeLabel);
+          strncpy(sizeUnits, "%", 2);
+         break;
+        case 2: // bytes free
+          bytes10Label(freeBytes, sizeLabel, sizeUnits);
+          break;
+        case 3: // percentage free
+          percentageLabel(((float)freeBytes / (float)totalBytes), 0, sizeLabel);
+          strncpy(sizeUnits, "%", 2);
+          break;
+      }
 
-      renderDisk(canvas, diskLabel, sizeLabel, sizeUnits, indent, start + (stride * i), (float)usedBytes / (float)totalBytes);
+      int16_t color = (i % 2 == 0 ? STORAGE_EVEN_COLOR : STORAGE_ODD_COLOR);
+      renderDisk(canvas, color, diskLabel, sizeLabel, sizeUnits, indent, start + (stride * i), (float)usedBytes / (float)totalBytes);
     }
   }
+#else
+  for (int i = 0; i < volumeCount; i++) {
+    char diskLabel[volumeNameLength + 1];
+    snprintf(diskLabel, volumeNameLength + 1, "Volume %d", i);
 
-  canvas.drawLine(0, 64 - 8 - 3, 128, 64 - 8 - 3, ST77XX_WHITE);
+    char sizeLabel[5];
+    char sizeUnits[5];
+    snprintf(sizeLabel, 5, "%d.%d", i * 10, i + 1);
+    strncpy(sizeUnits, "%", 2);
 
-  int64_t bottomHeight = 64 - characterHeight - characterSpacer;
+    int16_t color = (i % 2 == 0 ? STORAGE_EVEN_COLOR : STORAGE_ODD_COLOR);
+    renderDisk(canvas, color, diskLabel, sizeLabel, sizeUnits, indent, start + (stride * i), (float)(i + 1) / (float)volumeCount);
+  }
+#endif
 
-  canvas.drawBitmap(indent, bottomHeight, bitmapUptime, 7, 7, ST77XX_WHITE);
-  canvas.setCursor(indent + bitmapDimension + spacer, bottomHeight);
+  int64_t bottomHeight = 135 - 5;
+
+  canvas.writeFastVLine(diskWidth, 0, bottomHeight, BACKGROUND_COLOR);
+
+  canvas.fillRect(0, 135 - 21, 240, 21, BACKGROUND_COLOR);
+
   int uptimeDecimalPlaces = 1;
   float daysUptime = (float)data->uptime / 60.0 / 60.0 / 24.0;
-  if (daysUptime > 99.9) {
-    uptimeDecimalPlaces = 0;
-  }
-  char uptimeLabel[5];
-  snprintf(uptimeLabel, sizeof(uptimeLabel), "%4.*f", uptimeDecimalPlaces, daysUptime);
-  canvas.print(uptimeLabel);
-  canvas.setCursor(indent + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
-  canvas.print("days");
+  char uptimeLabel[16];
+  snprintf(uptimeLabel, sizeof(uptimeLabel), "%.1f days", daysUptime);
 
-  canvas.drawBitmap(indent + barWidth + spacer, bottomHeight, bitmapLoad, 7, 7, ST77XX_WHITE);
-  canvas.setCursor(indent + barWidth + spacer + bitmapDimension + spacer, bottomHeight);
-  int loadDecimalPlaces = 1;
-  if (data->load > 99.9) {
-    loadDecimalPlaces = 0;
-  }
-  char loadLabel[5];
-  snprintf(loadLabel, sizeof(loadLabel), "%4.*f", loadDecimalPlaces, data->load);
+  canvas.setCursor(indent + spacer, bottomHeight);
+  canvas.print(uptimeLabel);
+
+  char loadLabel[10];
+  snprintf(loadLabel, sizeof(loadLabel), "%.1f", data->load);
+
+  int16_t labelX = 0;
+  int16_t labelY = 0;
+  uint16_t labelWidth = 0;
+  uint16_t labelHeight = 0;
+  canvas.getTextBounds(loadLabel, 0, 0, &labelX, &labelY, &labelWidth, &labelHeight);
+
+  canvas.setCursor(indent + barWidth - inset - spacer - labelWidth, bottomHeight);
   canvas.print(loadLabel);
-  canvas.setCursor(indent + barWidth + spacer + bitmapDimension + spacer + ((characterWidth + characterSpacer) * 4) + spacer, bottomHeight);
+  canvas.setCursor(indent + barWidth - inset + spacer, bottomHeight);
   canvas.print("load");
 }
 
 void renderStart(GFXcanvas16 &canvas) {
   canvas.fillScreen(ST77XX_BLACK);
 
-  canvas.setCursor(10, ((characterWidth + characterSpacer) * 3));
-  canvas.print(" Start the iPulse");
-  canvas.setCursor(10, ((characterWidth + characterSpacer) * 4) + (spacer * 1));
+  canvas.fillRoundRect(0, 0, 240, 135, 10, FILL_COLOR);
+  canvas.setCursor(32, ((characterHeight + characterSpacer) * 2.25));
+  canvas.print("   Start the iPulse");
+  canvas.setCursor(32, ((characterHeight + characterSpacer) * 3.25) + (spacer * 1));
   canvas.print("daemon in Terminal");
-  canvas.setCursor(10, ((characterWidth + characterSpacer) * 5) + (spacer * 2));
-  canvas.print("   on your Mac.");
-  canvas.drawRoundRect(0, 0, 128, 64, 10, ST77XX_WHITE);
+  canvas.setCursor(32, ((characterHeight + characterSpacer) * 4.25) + (spacer * 2));
+  canvas.print("     on your Mac.");
+  canvas.drawRoundRect(0, 0, 240, 135, 10, MEMORY_COMPRESSED_COLOR);
+  canvas.drawRoundRect(1, 1, 238, 133, 10, MEMORY_COMPRESSED_COLOR);
 }
 
 void renderSleep(GFXcanvas16 &canvas) {
-  int x = random(0, 128 - ((characterWidth + characterSpacer) * 3));
-  int y = random(0, 64 - (characterHeight + characterSpacer));
+  int x = random(0, 240 - ((characterWidth + characterSpacer) * 3));
+  int y = random(0, 135 - (characterHeight + characterSpacer)) + characterHeight;
   canvas.fillScreen(ST77XX_BLACK);
   canvas.setCursor(x, y);
   canvas.print("zzz");
