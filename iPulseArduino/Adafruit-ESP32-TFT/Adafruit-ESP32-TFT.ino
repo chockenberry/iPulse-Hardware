@@ -36,6 +36,9 @@ bool needsUpdate = false;
 // displaying cpu/network/disk/memory activity or disk capacities
 bool displayingActivity = true;
 
+// displaying mode status
+bool displayingMode = false;
+
 void configurePins() {
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -78,9 +81,13 @@ void setup() {
 const int heartbeatPulse = 100;
 unsigned long previousHeartbeatMillis = 0;
 
-// sleep mode (to preserve OLED lifetime) starts after three seconds without any serial data
+// sleep mode starts after three seconds without any serial data
 const int sleepInterval = 3000;
 unsigned long previousSleepMillis = 0;
+
+// sleep mode starts after three seconds without any serial data
+const int modeInterval = 5000;
+unsigned long previousModeMillis = 0;
 
 // set to true when data is first received from serial port
 bool hasFirstUpdate = false;
@@ -94,7 +101,6 @@ unsigned long previousButtonCMillis = 0;
 bool pressedButtonA = false;
 bool pressedButtonB = false;
 bool pressedButtonC = false;
-
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -143,18 +149,23 @@ void loop() {
     }
   } else {
     if (pressedButtonB) {
-      if (displayingActivity) {
-        displayActivityMode += 1;
-        if (displayActivityMode > 3) {
-          displayActivityMode = 0;
+      if (displayingMode) {
+        if (displayingActivity) {
+          displayActivityMode += 1;
+          if (displayActivityMode > 3) {
+            displayActivityMode = 0;
+          }
+        }
+        else {
+          displayDiskMode += 1;
+          if (displayDiskMode > 3) {
+            displayDiskMode = 0;
+          }
         }
       }
-      else {
-        displayDiskMode += 1;
-        if (displayDiskMode > 3) {
-          displayDiskMode = 0;
-        }
-      }
+      displayingMode = true;
+      previousModeMillis = currentMillis;
+
       needsUpdate = true;
       pressedButtonB = false;
     }
@@ -169,11 +180,10 @@ void loop() {
     }
   } else {
     if (pressedButtonC) {
-      if (hasFirstUpdate) {
-      //if (true) {
+      //if (hasFirstUpdate) {
         displayingActivity = !displayingActivity;
         needsUpdate = true;
-      }
+      //}
       pressedButtonC = false;
     }
     previousButtonCMillis = 0;
@@ -184,6 +194,12 @@ void loop() {
       renderActivity(canvas, &data);
     } else {
       renderDisks(canvas, &data);
+    }
+    if (displayingMode) {
+      renderMode(canvas, displayingActivity);
+    }
+    else {
+      renderStatus(canvas, &data);
     }
     display.drawRGBBitmap(0, 0, canvas.getBuffer(), 240, 135);
 
@@ -207,6 +223,14 @@ void loop() {
         renderSleep(canvas);
         display.drawRGBBitmap(0, 0, canvas.getBuffer(), 240, 135);
         previousSleepMillis = currentMillis;
+      }
+    }
+
+    if (displayingMode) {
+      if (currentMillis - previousModeMillis > modeInterval) {
+        displayingMode = false;
+        previousModeMillis = 0;
+        needsUpdate = true;
       }
     }
   }

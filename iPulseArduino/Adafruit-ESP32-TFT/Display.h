@@ -194,32 +194,6 @@ void renderActivity(GFXcanvas16 &canvas, DataPtr data) {
   renderMemory(canvas, MEMORY_WIRED_COLOR, MEMORY_APP_COLOR, MEMORY_COMPRESSED_COLOR, memoryLabel, memoryUnits, indent, start + (stride * 5),
       (float)data->memoryWiredSize / (float)data->memoryPhysicalSize, (float)data->memoryAppSize / (float)data->memoryPhysicalSize, (float)data->memoryCompressedSize / (float)data->memoryPhysicalSize);
 #endif
-
-  int64_t bottomHeight = 135 - 5;
-
-  canvas.fillRect(0, 135 - 21, 240, 21, BACKGROUND_COLOR);
-
-  int uptimeDecimalPlaces = 1;
-  float daysUptime = (float)data->uptime / 60.0 / 60.0 / 24.0;
-  char uptimeLabel[16];
-  snprintf(uptimeLabel, sizeof(uptimeLabel), "%.1f days", daysUptime);
-
-  canvas.setCursor(indent + spacer, bottomHeight);
-  canvas.print(uptimeLabel);
-
-  char loadLabel[10];
-  snprintf(loadLabel, sizeof(loadLabel), "%.1f", data->load);
-
-  int16_t labelX = 0;
-  int16_t labelY = 0;
-  uint16_t labelWidth = 0;
-  uint16_t labelHeight = 0;
-  canvas.getTextBounds(loadLabel, 0, 0, &labelX, &labelY, &labelWidth, &labelHeight);
-
-  canvas.setCursor(indent + barWidth - inset - spacer - labelWidth, bottomHeight);
-  canvas.print(loadLabel);
-  canvas.setCursor(indent + barWidth - inset + spacer, bottomHeight);
-  canvas.print("load");
 }
 
 void renderDisk(GFXcanvas16 &canvas, uint16_t color, const char *name, const char *label, const char *units, int16_t x, int16_t y, float value) {
@@ -312,6 +286,10 @@ void renderDisks(GFXcanvas16 &canvas, DataPtr data) {
   int64_t bottomHeight = 135 - 5;
 
   canvas.writeFastVLine(diskWidth, 0, bottomHeight, BACKGROUND_COLOR);
+}
+
+void renderStatus(GFXcanvas16 &canvas, DataPtr data) {
+  const int16_t indent = 0;
 
   canvas.fillRect(0, 135 - 21, 240, 21, BACKGROUND_COLOR);
 
@@ -319,6 +297,8 @@ void renderDisks(GFXcanvas16 &canvas, DataPtr data) {
   float daysUptime = (float)data->uptime / 60.0 / 60.0 / 24.0;
   char uptimeLabel[16];
   snprintf(uptimeLabel, sizeof(uptimeLabel), "%.1f days", daysUptime);
+
+  int64_t bottomHeight = 135 - 5;
 
   canvas.setCursor(indent + spacer, bottomHeight);
   canvas.print(uptimeLabel);
@@ -336,6 +316,59 @@ void renderDisks(GFXcanvas16 &canvas, DataPtr data) {
   canvas.print(loadLabel);
   canvas.setCursor(indent + barWidth - inset + spacer, bottomHeight);
   canvas.print("load");
+}
+
+void renderMode(GFXcanvas16 &canvas, bool displayingActivity) {
+  const int16_t indent = 0;
+
+  canvas.fillRect(0, 135 - 21, 240, 21, BACKGROUND_COLOR);
+
+  int64_t bottomHeight = 135 - 5;
+
+  char *mode = 0;
+  char *state = 0;
+  if (displayingActivity) {
+    mode = "Rate";
+    switch (displayActivityMode) {
+      default:
+      case 0:
+        state = "10 Mbps & 1 MB/s";
+        break;
+      case 1:
+        state = "100 Mbps & 10 MB/s";
+        break;
+      case 2:
+        state = "1 Gbps & 100 MB/s";
+        break;
+      case 3:
+        state = "2 Gbps & 200 MB/s";
+        break;
+    }
+  }
+  else {
+    mode = "Disk";
+    switch (displayDiskMode) {
+      default:
+      case 0:
+        state = "Used (bytes)";
+        break;
+      case 1:
+        state = "Used (percentage)";
+        break;
+      case 2:
+        state = "Free (bytes)";
+        break;
+      case 3:
+        state = "Free (percentage)";
+        break;
+    }
+  }
+
+  char modeLabel[32];
+  snprintf(modeLabel, sizeof(modeLabel), "%s: %s", mode, state);
+
+  canvas.setCursor(indent + spacer, bottomHeight);
+  canvas.print(modeLabel);
 }
 
 void renderStart(GFXcanvas16 &canvas) {
