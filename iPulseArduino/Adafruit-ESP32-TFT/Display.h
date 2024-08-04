@@ -371,6 +371,30 @@ void renderMode(GFXcanvas16 &canvas, bool displayingActivity) {
   canvas.print(modeLabel);
 }
 
+void renderOverlay(GFXcanvas16 &canvas) {
+  const int16_t stride = 19;
+  const int16_t start = 0;
+  const int16_t indent = 0;
+
+  canvas.setCursor(indent + spacer, start + (stride * 0) + characterHeight - ascenderOffset);
+  canvas.print("Processor");
+
+  canvas.setCursor(indent + spacer, start + (stride * 1) + characterHeight - ascenderOffset);
+  canvas.print("Download");
+
+  canvas.setCursor(indent + spacer, start + (stride * 2) + characterHeight - ascenderOffset);
+  canvas.print("Upload");
+
+  canvas.setCursor(indent + spacer, start + (stride * 3) + characterHeight - ascenderOffset);
+  canvas.print("Read");
+
+  canvas.setCursor(indent + spacer, start + (stride * 4) + characterHeight - ascenderOffset);
+  canvas.print("Write");
+
+  canvas.setCursor(indent + spacer, start + (stride * 5) + characterHeight - ascenderOffset);
+  canvas.print("Memory");
+}
+
 void renderStart(GFXcanvas16 &canvas) {
   canvas.fillScreen(ST77XX_BLACK);
 

@@ -39,6 +39,9 @@ bool displayingActivity = true;
 // displaying mode status
 bool displayingMode = false;
 
+// displaying overlay
+bool displayingOverlay = false;
+
 void configurePins() {
   pinMode(LED_BUILTIN, OUTPUT);
 
@@ -64,7 +67,6 @@ void setup() {
   configureDisplay(display, font, canvas);
   configurePins();
 
-  setDimmed(true);
   setHeartbeat(false);
   renderStart(canvas);
   display.drawRGBBitmap(0, 0, canvas.getBuffer(), 240, 135);
@@ -135,9 +137,14 @@ void loop() {
     }
   } else {
     if (pressedButtonA) {
-      toggleDimmed();
+      if (displayingActivity) {
+        displayingOverlay = true;
+        previousModeMillis = currentMillis;
+        needsUpdate = true;
+      }
       pressedButtonA = false;
     }
+
     previousButtonAMillis = 0;
   }
 
@@ -192,6 +199,9 @@ void loop() {
   if (needsUpdate) {
     if (displayingActivity) {
       renderActivity(canvas, &data);
+      if (displayingOverlay) {
+        renderOverlay(canvas);
+      }
     } else {
       renderDisks(canvas, &data);
     }
@@ -226,24 +236,15 @@ void loop() {
       }
     }
 
-    if (displayingMode) {
+    if (displayingMode || displayingOverlay) {
       if (currentMillis - previousModeMillis > modeInterval) {
         displayingMode = false;
+        displayingOverlay = false;
         previousModeMillis = 0;
         needsUpdate = true;
       }
     }
   }
- }
-
-bool isDimmed = true;
-void setDimmed(bool flag) {
-  isDimmed = flag;
-  // Need to use PWM to cycle power to the TFT backlight: https://forums.adafruit.com/viewtopic.php?t=174096
-  //display.setContrast(isDimmed ? 0 : 255);
-}
-void toggleDimmed() {
-  setDimmed(!isDimmed);
 }
 
 bool heartbeatState = false;
