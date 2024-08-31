@@ -251,10 +251,10 @@ extension CoreSample: CustomStringConvertible {
 }
 
 struct CoreSnapshot {
-	private(set) var systemTicks: Int32
-	private(set) var userTicks: Int32
-	private(set) var idleTicks: Int32
-	private(set) var niceTicks: Int32
+	private(set) var systemTicks: Int64
+	private(set) var userTicks: Int64
+	private(set) var idleTicks: Int64
+	private(set) var niceTicks: Int64
 	
 	init() {
 		systemTicks = 0
@@ -264,10 +264,10 @@ struct CoreSnapshot {
 	}
 	
 	mutating func add(systemTicks: Int32, userTicks: Int32, idleTicks: Int32, niceTicks: Int32) {
-		self.systemTicks += systemTicks
-		self.userTicks += userTicks
-		self.idleTicks += idleTicks
-		self.niceTicks += niceTicks
+		self.systemTicks += Int64(systemTicks)
+		self.userTicks += Int64(userTicks)
+		self.idleTicks += Int64(idleTicks)
+		self.niceTicks += Int64(niceTicks)
 	}
 }
 
@@ -480,6 +480,8 @@ class Collector {
 			return result
 		}
 		
+		//print("processorCoreInfo: numberOfLevels = \(numberOfLevels)")
+		
 		for level in 0..<numberOfLevels {
 			let countName = String(format: "hw.perflevel%d.logicalcpu", level)
 			var countSize = MemoryLayout<Int>.size
@@ -487,7 +489,7 @@ class Collector {
 			if sysctlbyname(countName, &count, &countSize, nil, 0) != 0 {
 				count = 0
 			}
-			
+
 			let typeName = String(format: "hw.perflevel%d.name", level)
 			var typeSize = 256
 			var typeCharacters = [CChar](repeating: 0, count: typeSize)
@@ -498,7 +500,9 @@ class Collector {
 			else {
 				type = String(cString: typeCharacters)
 			}
-			
+
+			//print("processorCoreInfo: level = \(level), count = \(count), type = '\(type)'")
+
 			let coreInfo = CoreInfo(count: count, type: type)
 			result.insert(coreInfo, at: 0)
 		}
@@ -738,9 +742,13 @@ class Collector {
 		guard result == KERN_SUCCESS else { return }
 		guard let processorInfoArray else { return }
 		
+		//print("collectProcessor: processorCount = \(processorCount), processorInfoCount = \(processorInfoCount)")
+		
 		let processorCoreCount = processorCoreInfo.count
 		var coreSnapshots = [CoreSnapshot](repeating: CoreSnapshot(), count: processorCoreCount)
-		
+
+		//print("collectProcessor: processorCoreCount = \(processorCoreCount)")
+
 		var processorMap: [Int] = []
 		for (index, coreInfo) in processorCoreInfo.enumerated() {
 			let items = [Int](repeating: index, count: coreInfo.count)
@@ -748,15 +756,22 @@ class Collector {
 		}
 		
 		for processor in 0..<processorCount {
+			//print("collectProcessor: processor = \(processor)")
 			let index = Int32(processor) * CPU_STATE_MAX
-			
+			//print("collectProcessor: index = \(index)")
+
 			let systemTicks = processorInfoArray[Int(index + CPU_STATE_SYSTEM)]
 			let userTicks = processorInfoArray[Int(index + CPU_STATE_USER)]
 			let idleTicks = processorInfoArray[Int(index + CPU_STATE_IDLE)]
 			let niceTicks = processorInfoArray[Int(index + CPU_STATE_NICE)]
-			
+
+
 			let coreIndex = processorCoreMap[Int(processor)]
-			coreSnapshots[coreIndex].add(systemTicks: systemTicks, userTicks: userTicks, idleTicks: idleTicks, niceTicks: niceTicks)
+			//print("collectProcessor: coreIndex = \(coreIndex), coreSnapshots.count = \(coreSnapshots.count)")
+			if coreIndex < coreSnapshots.count {
+				//print("collectProcessor: \(processor) = systemTicks = \(systemTicks), userTicks = \(userTicks), idleTicks = \(idleTicks), niceTicks = \(niceTicks)")
+				coreSnapshots[coreIndex].add(systemTicks: systemTicks, userTicks: userTicks, idleTicks: idleTicks, niceTicks: niceTicks)
+			}
 			//debugLog("CPU: \(processor): systemTicks = \(systemTicks), userTicks = \(userTicks), idleTicks = \(idleTicks), niceTicks = \(niceTicks)")
 		}
 		
