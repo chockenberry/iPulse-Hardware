@@ -183,12 +183,28 @@ NSNotificationName const SerialStateDidChangeNotification = @"SerialStateDidChan
 		//NSLog(@"send: '%@' to %@", message, self.bsdPath);
 		
 		NSData *data = [[message stringByAppendingString:@"\r"] dataUsingEncoding:NSASCIIStringEncoding allowLossyConversion:YES];
-		ssize_t bytesWritten = write(self.fileDescriptor, data.bytes, data.length);
-		if (bytesWritten != -1) {
-			//NSLog(@"send: wrote %ld bytes", bytesWritten);
-		}
-		else {
-			[self handleError:@"sending message"];
+		const unsigned char *bytePointer = data.bytes;
+		NSUInteger location = 0;
+		NSUInteger length = data.length;
+		
+		BOOL done = NO;
+		while (!done) {
+			ssize_t bytesWritten = write(self.fileDescriptor, &(bytePointer[location]), length);
+			if (bytesWritten == -1 && errno != EAGAIN) {
+				done = YES;
+				[self handleError:@"sending message"];
+			}
+			
+			//NSLog(@"send: wrote %ld of %ld bytes", bytesWritten, length);
+			if (bytesWritten == length) {
+				done = YES;
+			}
+			else {
+				if (bytesWritten != -1) {
+					location += bytesWritten;
+					length -= bytesWritten;
+				}
+			}
 		}
 	}
 }
