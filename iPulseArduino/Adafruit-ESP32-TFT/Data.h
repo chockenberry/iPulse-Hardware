@@ -6,7 +6,7 @@
 #define _Data_H_
 
 const int volumeCount = 6;
-const int volumeNameLength = 8;
+const int volumeNameLength = 16;
 
 struct Volume {
   bool inUse;
